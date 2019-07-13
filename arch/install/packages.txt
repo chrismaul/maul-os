@@ -1,0 +1,59 @@
+# keys
+pcsclite
+ccid
+yubikey-personalization
+yubico-yubioath-desktop
+
+# Editors
+atom
+
+# browsers
+brave-bin
+firefox
+google-chrome
+
+# common tools
+bind-tools
+bc
+
+# tools
+docker
+docker-compose
+docker-credential-secretservice
+ibmcloud-cli
+git-crypt
+doctoc
+ipmitool
+jq
+meld
+rsync
+signal-desktop-bin
+slack-desktop
+vim
+wget
+curl
+zoom
+
+# k8s
+kubectx
+fzf
+kubernetes-helm-bin
+kustomize-bin
+skaffold
+
+# system
+cryptsetup
+device-mapper
+dhcpcd
+e2fsprogs
+efibootmgr
+intel-ucode
+libu2f-host
+linux
+plymouth-theme-dark-arch
+plymouth-git
+networkmanager
+gnome
+gdm
+sudo
+lvm2

@@ -1,0 +1,5 @@
+pcscd
+bluetooth
+gdm
+docker
+NetworkManager
