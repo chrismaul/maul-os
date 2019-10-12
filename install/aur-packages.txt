@@ -1,13 +1,10 @@
 yubico-yubioath-desktop
 brave-bin
-google-chrome
 docker-credential-secretservice
 ibmcloud-cli
-doctoc
-signal-desktop-bin
-slack-desktop
-zoom
 kubernetes-helm-bin
 kustomize-bin
 skaffold-bin
-plymouth-theme-dark-arch
+cloud-init
+slack-desktop
+kubectl-bin

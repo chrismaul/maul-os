@@ -1,0 +1,1 @@
+auth       required   pam_u2f.so  runasuser origin=pam://u2f appid=pam://u2f cue authfile=/etc/u2f_mappings

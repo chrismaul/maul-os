@@ -1,0 +1,3 @@
+#%PAM-1.0
+auth [success=done default=ignore]   pam_exec.so /usr/bin/pam-home
+auth required   pam_exec.so expose_authtok /usr/bin/pam-home

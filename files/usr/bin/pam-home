@@ -1,0 +1,60 @@
+#!/bin/bash -e
+USR="$PAM_USER"
+ROOT="$USR-home"
+USR_HOME="$(eval echo ~$USR)"
+
+PASS=$(cat)
+
+setupHome() {
+  if [ ! -e "/dev/mapper/$ROOT" ] && [ -n "$PASS" ]
+  then
+    echo "Decrypting device"
+    echo -n $PASS | sha256sum | \
+    cut -d ' ' -f 1 | \
+    ykchalresp -1 -i- | \
+    cryptsetup open "/dev/root/$USR" "$ROOT"
+  fi
+  if ! findmnt $USR_HOME > /dev/null 2> /dev/null
+  then
+    echo "Mounting home"
+    mount "/dev/mapper/$ROOT" "$USR_HOME"
+  fi
+  if ! findmnt /etc/NetworkManager/system-connections > /dev/null 2> /dev/null && findmnt $USR_HOME > /dev/null 2> /dev/null
+  then
+    mkdir -p $USR_HOME/.config/NetworkManager
+    mount --bind $USR_HOME/.config/NetworkManager /etc/NetworkManager/system-connections
+    sleep 2
+    systemctl restart NetworkManger
+  fi
+}
+
+closeHome() {
+  if findmnt $USR_HOME > /dev/null 2> /dev/null
+  then
+    umount $USR_HOME
+  fi
+  if [ -e "/dev/mapper/$ROOT" ]
+  then
+    cryptsetup close $ROOT
+  fi
+  [ ! -e "/dev/mapper/$ROOT" ]
+}
+
+isEncryptedHome() {
+  echo "Checking is home is mounting"
+  HOME_DEV=$(findmnt $USR_HOME -nU -o source)
+  [ "$HOME_DEV" = "/dev/mapper/$ROOT" ]
+  cryptsetup status $ROOT > /dev/null 2> /dev/null
+}
+
+case $PAM_TYPE in
+  auth)
+    setupHome
+  ;;
+  account)
+    isEncryptedHome
+  ;;
+  close_session)
+    isEncryptedHome
+  ;;
+esac

@@ -1,0 +1,18 @@
+#!/bin/bash -e
+ACTION=$1
+shift
+USR=$1
+shift
+DOCKER_DIR=$1
+shift
+DATA_DIR=$DOCKER_DIR/data
+PID_FILE=$DOCKER_DIR/docker.pid
+SOCK=$DOCKER_DIR/docker.sock
+mkdir -p $DOCKER_DIR
+if [ "$ACTION" = "reload" ]
+then
+  /bin/kill -s HUP $(cat $PID_FILE)
+else
+  /usr/bin/dockerd --data-root "$DATA_DIR" -p $PID_FILE -H unix://$SOCK
+fi
+chown $USR $DOCKER_DIR $PID_FILE $SOCK

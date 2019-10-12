@@ -3,6 +3,8 @@ base
 pcsclite
 ccid
 yubikey-personalization
+yubikey-manager
+dmidecode
 
 
 # Editors
@@ -17,6 +19,9 @@ firefox
 bind-tools
 bc
 
+evolution
+evolution-ews
+
 # tools
 docker
 docker-compose
@@ -30,14 +35,24 @@ rsync
 vim
 wget
 curl
+aspell-en
+hunspell-en_US
 
+# wireless
+
+wireless_tools
+iw
+wpa_supplicant
 
 # k8s
 kubectx
 fzf
 
+diffutils
+pam-u2f
 
 # system
+weston
 cryptsetup
 device-mapper
 dhcpcd
@@ -46,9 +61,16 @@ efibootmgr
 intel-ucode
 libu2f-host
 linux
-
+linux-firmware
+systemd
 networkmanager
+networkmanager-openconnect
 gnome
 gdm
 sudo
 lvm2
+
+
+# VPN
+
+python-netifaces
