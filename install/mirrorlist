@@ -3,8 +3,9 @@
 ## Filtered by mirror score from mirror status page
 ## Generated on 2019-03-01
 ##
-Server = http://mirror.wdc1.us.leaseweb.net/archlinux/$repo/os/$arch
 Server = http://mirror.math.princeton.edu/pub/archlinux/$repo/os/$arch
+Server = http://mirror.wdc1.us.leaseweb.net/archlinux/$repo/os/$arch
+
 Server = http://distro.ibiblio.org/archlinux/$repo/os/$arch
 
 ## Georgia
@@ -555,4 +556,3 @@ Server = http://mirror.internode.on.net/pub/archlinux/$repo/os/$arch
 Server = http://repo.iut.ac.ir/repo/archlinux/$repo/os/$arch
 ## United States
 Server = http://repo.ialab.dsu.edu/archlinux/$repo/os/$arch
-

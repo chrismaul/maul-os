@@ -3,38 +3,72 @@ USR="$PAM_USER"
 ROOT="$USR-home"
 USR_HOME="$(eval echo ~$USR)"
 
+# convert /home/test to home-test
+
+SYSTEMD_UNIT=${USR_HOME//\//-}
+SYSTEMD_UNIT=${SYSTEMD_UNIT/#-/}.mount
+
+NM_SYSTEMD_UNIT=etc-NetworkManager-system\x2connections.mount
 PASS=$(cat)
 
 setupHome() {
   if [ ! -e "/dev/mapper/$ROOT" ] && [ -n "$PASS" ]
   then
     echo "Decrypting device"
-    echo -n $PASS | sha256sum | \
-    cut -d ' ' -f 1 | \
-    ykchalresp -1 -i- | \
-    cryptsetup open "/dev/root/$USR" "$ROOT"
+    (
+      echo -n $PASS | \
+      cryptsetup open "/dev/root/$USR" "$ROOT"
+    ) || (
+      echo -n $PASS | sha256sum | \
+      cut -d ' ' -f 1 | \
+      ykchalresp -1 -i- | \
+      cryptsetup open "/dev/root/$USR" "$ROOT"
+    )
   fi
-  if ! findmnt $USR_HOME > /dev/null 2> /dev/null
+  if [ -e "/run/systemd/system/$SYSTEMD_UNIT" ]
   then
     echo "Mounting home"
-    mount "/dev/mapper/$ROOT" "$USR_HOME"
+    echo "[Unit]
+Description = Mount $USR home
+
+[Mount]
+What=/dev/mapper/$ROOT
+Where=$USR_HOME
+Type=auto
+Options=defaults" > /run/systemd/system/$SYSTEMD_UNIT
+    systemctl daemon-reload
+    systemctl start --wait $SYSTEMD_UNIT
   fi
-  if ! findmnt /etc/NetworkManager/system-connections > /dev/null 2> /dev/null && findmnt $USR_HOME > /dev/null 2> /dev/null
+  if [ -e "/run/systemd/system/$NM_SYSTEMD_UNIT" ]
   then
     mkdir -p $USR_HOME/.config/NetworkManager
-    mount --bind $USR_HOME/.config/NetworkManager /etc/NetworkManager/system-connections
-    sleep 2
-    systemctl restart NetworkManger
+    echo "[Unit]
+Description = Mount network manager
+BindsTo=$SYSTEMD_UNIT
+Before=NetworkManger.service
+Wants=NetworkManger.service
+
+[Mount]
+What=$USR_HOME/.config/NetworkManager
+Where=/etc/NetworkManager/system-connections
+Type=none
+Options=bind" > /run/systemd/system/$NM_SYSTEMD_UNIT
+    systemctl daemon-reload
+    systemctl start --wait $NM_SYSTEMD_UNIT
   fi
 }
 
 closeHome() {
-  if findmnt $USR_HOME > /dev/null 2> /dev/null
+  if systemctl status $SYSTEMD_UNIT > /dev/null 2> /dev/null
   then
-    umount $USR_HOME
+    systemctl stop --wait $NM_SYSTEMD_UNIT
+    systemctl stop --wait $SYSTEMD_UNIT
   fi
   if [ -e "/dev/mapper/$ROOT" ]
   then
+    rm /run/systemd/system/$SYSTEMD_UNIT
+    rm /run/systemd/system/$NM_SYSTEMD_UNIT
+    systemctl daemon-reload
     cryptsetup close $ROOT
   fi
   [ ! -e "/dev/mapper/$ROOT" ]

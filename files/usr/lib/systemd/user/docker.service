@@ -9,8 +9,8 @@ Type=exec
 # the default is not to use systemd for cgroups because the delegate issues still
 # exists and systemd currently does not support the cgroup feature set required
 # for containers run by docker
-ExecStart=sudo /usr/bin/user-docker start %u %h/.docker
-ExecReload=sudo /usr/bin/user-docker reload %u %h/.docker
+ExecStart=sudo /usr/bin/user-docker start %U %h/.docker
+ExecReload=sudo /usr/bin/user-docker reload %U %h/.docker
 LimitNOFILE=1048576
 # Having non-zero Limit*s causes performance problems due to accounting overhead
 # in the kernel. We recommend using cgroups to do container-local accounting.
@@ -28,6 +28,5 @@ KillMode=process
 Restart=on-failure
 StartLimitBurst=3
 StartLimitInterval=60s
-
 [Install]
 WantedBy=default.target

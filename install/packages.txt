@@ -1,6 +1,7 @@
 base
 # keys
 pcsclite
+opensc
 ccid
 yubikey-personalization
 yubikey-manager
@@ -69,7 +70,8 @@ gnome
 gdm
 sudo
 lvm2
-
+usbutils
+inetutils
 
 # VPN
 

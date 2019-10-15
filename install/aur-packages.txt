@@ -8,3 +8,4 @@ skaffold-bin
 cloud-init
 slack-desktop
 kubectl-bin
+plymouth-theme-dark-arch
