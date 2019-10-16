@@ -1,0 +1,15 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Dependency
+      run: sudo ./.setup-ci-dependency
+    - name: Building the image
+      run: sudo mkosi
