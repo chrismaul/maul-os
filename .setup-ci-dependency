@@ -1,15 +1,26 @@
 #!/bin/bash
 apt-get update && apt-get install -y \
-  mkosi \
+  python3 \
+  git \
   xz-utils \
   curl \
   libarchive13 \
-  libgpgme11
+  libgpgme11 \
+  squashfs-tools \
+  systemd-container
 
+git clone https://github.com/systemd/mkosi.git
 
-for i in core/x86_64/pacman extra/any/arch-install-scripts
+mv mkosi/mkosi /usr/bin/
+
+for i in core/x86_64/pacman extra/any/arch-install-scripts core/any/archlinux-keyring core/any/pacman-mirrorlist
 do
   curl -ssL https://www.archlinux.org/packages/$i/download/ | \
     xz -d | \
-    tar x -C /
+    tar xv -C /
 done
+
+if [ ! -e "/usr/bin/bash" ]
+then
+  ln -s /bin/bash /usr/bin/bash
+fi

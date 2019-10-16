@@ -11,5 +11,7 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install Dependency
       run: sudo ./.setup-ci-dependency
+    - name: Make aur packages
+      run: ./build.sh
     - name: Building the image
       run: sudo mkosi

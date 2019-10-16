@@ -7,4 +7,4 @@ docker run --rm  \
   -v $PWD/build:/build \
   -v $PWD/mkosi.extra/:/output \
   -v $PWD/build-packages.sh:/run.sh \
-  -it archlinux/base /run.sh
+  archlinux/base /run.sh
