@@ -1,6 +1,11 @@
-name: CI
+name: Build Image
 
-on: [push]
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - v*
 
 jobs:
   build:
@@ -15,3 +20,10 @@ jobs:
       run: ./build.sh
     - name: Building the image
       run: sudo mkosi
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: output/root.squashfs
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
