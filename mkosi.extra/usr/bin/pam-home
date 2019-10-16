@@ -8,7 +8,7 @@ USR_HOME="$(eval echo ~$USR)"
 SYSTEMD_UNIT=${USR_HOME//\//-}
 SYSTEMD_UNIT=${SYSTEMD_UNIT/#-/}.mount
 
-NM_SYSTEMD_UNIT=etc-NetworkManager-system\x2connections.mount
+NM_SYSTEMD_UNIT=etc-NetworkManager-system\\x2dconnections.mount
 PASS=$(cat)
 
 setupHome() {
@@ -25,7 +25,8 @@ setupHome() {
       cryptsetup open "/dev/root/$USR" "$ROOT"
     )
   fi
-  if [ -e "/run/systemd/system/$SYSTEMD_UNIT" ]
+
+  if [ -e "/dev/mapper/$ROOT" ] && [ ! -e "/run/systemd/system/$SYSTEMD_UNIT" ]
   then
     echo "Mounting home"
     echo "[Unit]
@@ -37,16 +38,16 @@ Where=$USR_HOME
 Type=auto
 Options=defaults" > /run/systemd/system/$SYSTEMD_UNIT
     systemctl daemon-reload
-    systemctl start --wait $SYSTEMD_UNIT
+    systemctl start $SYSTEMD_UNIT
   fi
-  if [ -e "/run/systemd/system/$NM_SYSTEMD_UNIT" ]
+  if [ -e "/dev/mapper/$ROOT" ] && [ -e "/run/systemd/system/$SYSTEMD_UNIT" ] && [ ! -e "/run/systemd/system/$NM_SYSTEMD_UNIT" ]
   then
     mkdir -p $USR_HOME/.config/NetworkManager
     echo "[Unit]
 Description = Mount network manager
 BindsTo=$SYSTEMD_UNIT
-Before=NetworkManger.service
-Wants=NetworkManger.service
+Before=NetworkManager.service
+Wants=NetworkManager.service
 
 [Mount]
 What=$USR_HOME/.config/NetworkManager
@@ -54,8 +55,9 @@ Where=/etc/NetworkManager/system-connections
 Type=none
 Options=bind" > /run/systemd/system/$NM_SYSTEMD_UNIT
     systemctl daemon-reload
-    systemctl start --wait $NM_SYSTEMD_UNIT
+    systemctl start $NM_SYSTEMD_UNIT
   fi
+  isEncryptedHome || exit 6
 }
 
 closeHome() {
