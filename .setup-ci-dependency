@@ -1,0 +1,15 @@
+#!/bin/bash
+apt-get update && apt-get install -y \
+  mkosi \
+  xz-utils \
+  curl \
+  libarchive13 \
+  libgpgme11
+
+
+for i in core/x86_64/pacman extra/any/arch-install-scripts
+do
+  curl -ssL https://www.archlinux.org/packages/$i/download/ | \
+    xz -d | \
+    tar x -C /
+done

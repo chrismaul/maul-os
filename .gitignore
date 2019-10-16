@@ -4,3 +4,8 @@ packer_cache/
 # For built boxes
 *.box
 output
+output.squashfs
+.mkosi*
+mkosi.extra/packages
+.tmp
+tmp-*

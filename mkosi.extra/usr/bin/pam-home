@@ -1,0 +1,96 @@
+#!/bin/bash -e
+USR="$PAM_USER"
+ROOT="$USR-home"
+USR_HOME="$(eval echo ~$USR)"
+
+# convert /home/test to home-test
+
+SYSTEMD_UNIT=${USR_HOME//\//-}
+SYSTEMD_UNIT=${SYSTEMD_UNIT/#-/}.mount
+
+NM_SYSTEMD_UNIT=etc-NetworkManager-system\\x2dconnections.mount
+PASS=$(cat)
+
+setupHome() {
+  if [ ! -e "/dev/mapper/$ROOT" ] && [ -n "$PASS" ]
+  then
+    echo "Decrypting device"
+    (
+      echo -n $PASS | \
+      cryptsetup open "/dev/root/$USR" "$ROOT"
+    ) || (
+      echo -n $PASS | sha256sum | \
+      cut -d ' ' -f 1 | \
+      ykchalresp -1 -i- | \
+      cryptsetup open "/dev/root/$USR" "$ROOT"
+    )
+  fi
+
+  if [ -e "/dev/mapper/$ROOT" ] && [ ! -e "/run/systemd/system/$SYSTEMD_UNIT" ]
+  then
+    echo "Mounting home"
+    echo "[Unit]
+Description = Mount $USR home
+
+[Mount]
+What=/dev/mapper/$ROOT
+Where=$USR_HOME
+Type=auto
+Options=defaults" > /run/systemd/system/$SYSTEMD_UNIT
+    systemctl daemon-reload
+    systemctl start $SYSTEMD_UNIT
+  fi
+  if [ -e "/dev/mapper/$ROOT" ] && [ -e "/run/systemd/system/$SYSTEMD_UNIT" ] && [ ! -e "/run/systemd/system/$NM_SYSTEMD_UNIT" ]
+  then
+    mkdir -p $USR_HOME/.config/NetworkManager
+    echo "[Unit]
+Description = Mount network manager
+BindsTo=$SYSTEMD_UNIT
+Before=NetworkManager.service
+Wants=NetworkManager.service
+
+[Mount]
+What=$USR_HOME/.config/NetworkManager
+Where=/etc/NetworkManager/system-connections
+Type=none
+Options=bind" > /run/systemd/system/$NM_SYSTEMD_UNIT
+    systemctl daemon-reload
+    systemctl start $NM_SYSTEMD_UNIT
+  fi
+  isEncryptedHome || exit 6
+}
+
+closeHome() {
+  if systemctl status $SYSTEMD_UNIT > /dev/null 2> /dev/null
+  then
+    systemctl stop --wait $NM_SYSTEMD_UNIT
+    systemctl stop --wait $SYSTEMD_UNIT
+  fi
+  if [ -e "/dev/mapper/$ROOT" ]
+  then
+    rm /run/systemd/system/$SYSTEMD_UNIT
+    rm /run/systemd/system/$NM_SYSTEMD_UNIT
+    systemctl daemon-reload
+    cryptsetup close $ROOT
+  fi
+  [ ! -e "/dev/mapper/$ROOT" ]
+}
+
+isEncryptedHome() {
+  echo "Checking is home is mounting"
+  HOME_DEV=$(findmnt $USR_HOME -nU -o source)
+  [ "$HOME_DEV" = "/dev/mapper/$ROOT" ]
+  cryptsetup status $ROOT > /dev/null 2> /dev/null
+}
+
+case $PAM_TYPE in
+  auth)
+    setupHome
+  ;;
+  account)
+    isEncryptedHome
+  ;;
+  close_session)
+    isEncryptedHome
+  ;;
+esac

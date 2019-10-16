@@ -1,6 +1,0 @@
-pcscd.service
-bluetooth.service
-gdm.service
-NetworkManager.service
-cloud-init-local.service
-cloud-final.service

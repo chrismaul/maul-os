@@ -5,9 +5,12 @@ USR=$1
 shift
 DOCKER_DIR=$1
 shift
+
+export XDG_RUNTIME_DIR=/run/user/$USR
+mkdir -p $XDG_RUNTIME_DIR/docker
 DATA_DIR=$DOCKER_DIR/data
-PID_FILE=$DOCKER_DIR/docker.pid
-SOCK=$DOCKER_DIR/docker.sock
+PID_FILE=$XDG_RUNTIME_DIR/docker/docker.pid
+SOCK=$XDG_RUNTIME_DIR/docker/docker.sock
 mkdir -p $DOCKER_DIR
 if [ "$ACTION" = "reload" ]
 then

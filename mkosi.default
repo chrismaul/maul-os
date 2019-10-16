@@ -1,0 +1,79 @@
+[Distribution]
+Distribution=arch
+Mirror=http://mirror.math.princeton.edu/pub/archlinux
+
+
+[Output]
+Format=plain_squashfs
+Bootable=false
+Output=output/root.squashfs
+
+
+[Packages]
+BuildPackages=base-devel
+  git
+  sudo
+WithNetwork=true
+BuildSources=build
+SourceFileTransfer=copy-all
+Cache=.tmp/cache
+#BuildScript=build-packages.sh
+
+Packages=
+  base
+  arch-install-scripts
+  debootstrap
+  ubuntu-keyring
+  debian-archive-keyring
+  squashfs-tools
+  pcsclite
+  opensc
+  ccid
+  yubikey-personalization
+  yubikey-manager
+  dmidecode
+  atom
+  firefox
+  bind-tools
+  bc
+  evolution
+  evolution-ews
+  docker
+  docker-compose
+  git-crypt
+  ipmitool
+  jq
+  meld
+  rsync
+  vim
+  wget
+  curl
+  aspell-en
+  hunspell-en_US
+  wireless_tools
+  iw
+  wpa_supplicant
+  kubectx
+  fzf
+  diffutils
+  pam-u2f
+  weston
+  cryptsetup
+  device-mapper
+  dhcpcd
+  e2fsprogs
+  efibootmgr
+  intel-ucode
+  libu2f-host
+  linux
+  linux-firmware
+  systemd
+  networkmanager
+  networkmanager-openconnect
+  gnome
+  gdm
+  sudo
+  lvm2
+  usbutils
+  inetutils
+  python-netifaces

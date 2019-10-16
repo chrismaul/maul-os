@@ -8,3 +8,7 @@ skaffold-bin
 cloud-init
 slack-desktop
 kubectl-bin
+plymouth-theme-dark-arch
+mkosi-git
+ttf-meslo
+consolas-font
