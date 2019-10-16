@@ -1,29 +1,47 @@
 name: Build Image
 
 on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron: 0 0 * * 0
   push:
     branches:
       - master
-    tags:
-      - "*"
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Install Dependency
-      run: sudo ./.setup-ci-dependency
-    - name: Make aur packages
-      run: ./build.sh
-    - name: Building the image
-      run: sudo mkosi
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
-      with:
-        files: output/root.squashfs
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v1
+      - name: Install Dependency
+        run: sudo ./.setup-ci-dependency
+      - name: Make aur packages
+        run: ./build.sh
+      - name: Building the image
+        run: sudo mkosi
+      - name: Tag release
+        id: tag_release
+        run: ./.tag-release.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.tag_release.outputs.tag_name }}
+          release_name: Release ${{ steps.tag_release.outputs.tag_name }}
+          draft: false
+          prerelease: false
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ./output/root.squashfs
+          asset_name: root.squashfs
+          asset_content_type: application/octet-stream

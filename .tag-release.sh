@@ -1,13 +1,15 @@
 #!/bin/bash
-if [ -z $(git tag) ]
+
+TAG_REGEX="v[0-9][0-9]*.[0-9][0-9]*.[0-9][0-9]*"
+if [ -z $(git tag) ] || ! ( git tag | grep -q "$TAG_REGEX" )
 then
   echo "Using default tag"
-  TAG="1.0.0"
+  TAG="v1.0.0"
 elif [ -z "$(git tag -l --points-at HEAD)" ]
 then
   echo "git tags"
   git tag
-  LATEST_VERISON=$(git tag| grep -o "[0-9][0-9]*.[0-9][0-9]*.[0-9][0-9]*" | sort -Vr | head -n1)
+  LATEST_VERISON=$(git tag| grep -o "$TAG_REGEX" | sort -Vr | head -n1)
   echo "Latest Version: $LATEST_VERISON"
   NEXT_VERSION=$(echo $LATEST_VERISON | cut -d '.' -f 1).$(echo $LATEST_VERISON | cut -d '.' -f 2).$(expr $( echo $LATEST_VERISON | cut -d '.' -f 3) + 1)
   echo "NEXT_VERSION: $NEXT_VERSION"
@@ -15,9 +17,15 @@ then
 else
   echo "HEAD tags"
   git tag -l --points-at HEAD
-  CURRENT_VERISON=$(git tag -l --points-at HEAD| grep -o "[0-9][0-9]*.[0-9][0-9]*.[0-9][0-9]*" | sort -Vr | head -n1)
+  CURRENT_VERISON=$(git tag -l --points-at HEAD| grep -o "$TAG_REGEX" | sort -Vr | head -n1)
   echo $CURRENT_VERISON
   TAG="$CURRENT_VERISON-$(date +"%F-%H-%M")"
 fi
-git tag $TAG
-git push --tags
+
+echo "Tagging $GITHUB_SHA as $TAG"
+curl -X post -d @- https://api.github.com/repos/$GITHUB_REPOSITORY/git/tags \
+  -H "Authorization: token $GITHUB_TOKEN" << EOF
+{"tag_name":"$TAG", "target_commitish":"$GITHUB_SHA"}
+EOF
+
+echo ::set-output name=tag_name::$TAG
