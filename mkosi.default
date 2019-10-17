@@ -22,6 +22,7 @@ Cache=.tmp/cache
 Packages=
   base
   expect
+  which
   arch-install-scripts
   debootstrap
   ubuntu-keyring
