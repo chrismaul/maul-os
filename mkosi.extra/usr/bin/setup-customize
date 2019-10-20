@@ -1,0 +1,10 @@
+#!/bin/sh
+if [ "$1" = "initrd" ]
+then
+  test -d /extra-systemd && \
+    rsync -av /extra-systemd /sysroot/etc/systemd/system
+elif [ "$1" = "profile" ]
+then
+  test -d /sysroot/usr/share/profile/$2/etc/ && \
+  rsync -av /sysroot/usr/share/profile/$2/etc/ /etc/
+fi

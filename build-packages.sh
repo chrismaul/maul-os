@@ -14,17 +14,22 @@ mkdir -p ~/build
   makepkg -si --noconfirm --needed
 EOP
 
-for i in $(cat $SRCDIR/aur-packages.txt  | grep -v '^#' | grep -v '^ *$' | sort -u)
+for PROFILE in $SRCDIR/*.txt
 do
-su - build << EOP
+  PKG_DEST_DIR="$DESTDIR/build/$(basename $PROFILE .txt)/packages"
+  for i in $(cat $PROFILE  | grep -v '^#' | grep -v '^ *$' | sort -u)
+  do
+    if ! [ -e ~build/build/$i/*.pkg.tar.xz ]
+    then
+      su - build << EOP
 mkdir -p ~/build
   git clone https://aur.archlinux.org/$i.git ~/build/$i
   cd ~/build/$i
   (source PKGBUILD && gpg --recv-key \$validpgpkeys) || true
   makepkg -s --noconfirm --needed
 EOP
-# pacman -U ~build/build/$i/*.pkg.tar.xz --noconfirm --needed --root $OUTPUT
+    fi
+    mkdir -p "$PKG_DEST_DIR"
+    cp -av  ~build/build/$i/*.pkg.tar.xz $PKG_DEST_DIR
+  done
 done
-
-mkdir -p $DESTDIR/packages/
-cp -av ~build/build/*/*.pkg.tar.xz $DESTDIR/packages/

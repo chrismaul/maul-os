@@ -1,0 +1,12 @@
+[Unit]
+Description=Mount System Backups Directory
+Before=k3s.service docker.service
+
+[Mount]
+What=/dev/disk/by-label/data
+Where=/mnt/data
+Type=ext4
+Options=defaults
+
+[Install]
+WantedBy=multi-user.target

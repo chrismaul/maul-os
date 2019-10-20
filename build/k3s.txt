@@ -1,0 +1,5 @@
+k3s-bin
+kustomize-bin
+cloud-init
+kubectl-bin
+netplan

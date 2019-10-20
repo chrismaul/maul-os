@@ -5,6 +5,5 @@ packer_cache/
 *.box
 output.squashfs
 .mkosi*
-mkosi.extra/packages
+mkosi.extra/build/*/packages
 .tmp
-tmp-*

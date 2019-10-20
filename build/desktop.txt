@@ -12,3 +12,4 @@ plymouth-theme-dark-arch
 mkosi-git
 ttf-meslo
 consolas-font
+plymouth

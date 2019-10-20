@@ -1,6 +1,9 @@
 name: Build Image
 
 on:
+  pull_request:
+    branches:
+      - master
   schedule:
     # * is a special character in YAML so you have to quote this string
     - cron: 0 0 * * 0
@@ -19,15 +22,18 @@ jobs:
       - name: Make aur packages
         run: ./build.sh
       - name: Building the image
-        run: sudo mkosi
+        run: sudo mkosi -a
+
       - name: Tag release
         id: tag_release
         run: ./.tag-release.sh
+        if: github.event_name == 'schedule' && github.event.action == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Release
         id: create_release
         uses: actions/create-release@master
+        if: github.event_name == 'schedule' && github.event.action == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -35,13 +41,23 @@ jobs:
           release_name: Release ${{ steps.tag_release.outputs.tag_name }}
           draft: false
           prerelease: false
-      - name: Upload Release Asset
-        id: upload-release-asset
+      - name: Upload Desktop OS
+        if: github.event_name == 'schedule' && github.event.action == 'push'
         uses: actions/upload-release-asset@v1.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./output/root.squashfs
+          asset_path: ./output/desktop.squashfs
+          asset_name: root.squashfs
+          asset_content_type: application/octet-stream
+      - name: Upload K3s OS
+        if: github.event_name == 'schedule' && github.event.action == 'push'
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ./output/k3s.squashfs
           asset_name: root.squashfs
           asset_content_type: application/octet-stream
