@@ -24,7 +24,7 @@ jobs:
       - name: Building the image
         run: sudo mkosi --default=mkosi.files/mkosi.desktop
       - name: Building the image
-        run: sudo mkosi --default=mkosi.files/mkosi.desktop
+        run: sudo mkosi --default=mkosi.files/mkosi.k3s
       - name: Tag release
         id: tag_release
         run: ./.tag-release.sh
