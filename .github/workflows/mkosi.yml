@@ -28,13 +28,13 @@ jobs:
       - name: Tag release
         id: tag_release
         run: ./.tag-release.sh
-        if: github.event_name == 'schedule' && github.event.action == 'push'
+        if: github.event_name == 'schedule' && github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Release
         id: create_release
         uses: actions/create-release@master
-        if: github.event_name == 'schedule' && github.event.action == 'push'
+        if: github.event_name == 'schedule' && github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -43,7 +43,7 @@ jobs:
           draft: false
           prerelease: false
       - name: Upload Desktop OS
-        if: github.event_name == 'schedule' && github.event.action == 'push'
+        if: github.event_name == 'schedule' && github.event_name == 'push'
         uses: actions/upload-release-asset@v1.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,7 +53,7 @@ jobs:
           asset_name: desktop.squashfs
           asset_content_type: application/octet-stream
       - name: Upload K3s OS
-        if: github.event_name == 'schedule' && github.event.action == 'push'
+        if: github.event_name == 'schedule' && github.event_name == 'push'
         uses: actions/upload-release-asset@v1.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
