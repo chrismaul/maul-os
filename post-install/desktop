@@ -8,6 +8,11 @@ SYSTEMD_SERVICES="pcscd.service bluetooth.service gdm.service cloud-init-local.s
 SYSTEMD_USER_SERVICES="docker.service" \
 post-install
 
+if [ -f "/etc/dbus-1/system.d/wpa_supplicant.conf" ]
+then
+  mv -v /etc/dbus-1/system.d/wpa_supplicant.conf /usr/share/dbus-1/system.d/wpa_supplicant.conf
+fi
+
 if [ -f "/etc/libccid_Info.plist" ]
 then
   rm /usr/lib/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist && cp /etc/libccid_Info.plist /usr/lib/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist
@@ -15,10 +20,13 @@ fi
 
 # disable ssh for cloud init
 
-sed -i 's/^.*sshd.*$//' /usr/lib/systemd/system/cloud-init.service
-sed -i 's/^.*systemd-networkd.*$//' /usr/lib/systemd/system/cloud-init.service
-rm /usr/lib/systemd/system/systemd-network*
+#sed -i 's/^.*sshd.*$//' /usr/lib/systemd/system/cloud-init.service
+rm /usr/lib/systemd/system/multi-user.target.wants/NetworkManager.service
+rm /usr/lib/systemd/system/network-online.target.wants/NetworkManager-wait-online.service
+rm /usr/lib/systemd/system/multi-user.target.wants/remote-fs.target
 rm /usr/lib/systemd/system/docker*
+
+find /usr/lib/systemd/
 plymouth-set-default-theme -R dark-arch
 
 for i in /etc/mkinitcpio.d/*

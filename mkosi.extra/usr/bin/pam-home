@@ -54,6 +54,7 @@ What=$USR_HOME/.config/NetworkManager
 Where=/etc/NetworkManager/system-connections
 Type=none
 Options=bind" > /run/systemd/system/$NM_SYSTEMD_UNIT
+    rm /etc/systemd/system/NetworkManager.service
     systemctl daemon-reload
     systemctl start $NM_SYSTEMD_UNIT
   fi

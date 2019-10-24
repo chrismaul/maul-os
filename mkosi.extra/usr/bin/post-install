@@ -9,7 +9,6 @@ for i in \
   etc/xdg/ \
   etc/cloud/ \
   etc/security/ \
-  etc/dbus-1/ \
   etc/ca-certificates/ \
   etc/ssl/ \
   etc/pam.d/ \
@@ -49,7 +48,14 @@ then
 fi
 
 find /etc/systemd
-rsync -av /etc/systemd/ /usr/lib/systemd/
+for i in user system
+do
+  rsync -av --ignore-existing /etc/systemd/$i/ /usr/lib/systemd/$i/
+done
+
+sed -e 's/--prompt-locale//' -e 's|--timezone=America/New_York||' -i /usr/lib/systemd/system/systemd-firstboot.service
+
+cat /usr/lib/systemd/system/systemd-firstboot.service
 
 if [ ! -d "/usr/local/opt" ]
 then
