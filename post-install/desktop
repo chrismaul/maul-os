@@ -4,7 +4,7 @@ SYNC_FILES="etc/fonts/ etc/pulse/ etc/NetworkManager/" \
 PROFILE_FILES="/build/desktop/files" \
 HOOKS="sd-plymouth keyboard sd-vconsole sd-encrypt" \
 MODULES="i915" \
-SYSTEMD_SERVICES="pcscd.service bluetooth.service gdm.service cloud-init-local.service cloud-final.service" \
+SYSTEMD_SERVICES="pcscd.service bluetooth.service gdm.service" \
 SYSTEMD_USER_SERVICES="docker.service" \
 post-install
 
@@ -18,12 +18,7 @@ then
   rm /usr/lib/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist && cp /etc/libccid_Info.plist /usr/lib/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist
 fi
 
-# disable ssh for cloud init
-
-#sed -i 's/^.*sshd.*$//' /usr/lib/systemd/system/cloud-init.service
-rm /usr/lib/systemd/system/multi-user.target.wants/NetworkManager.service
-rm /usr/lib/systemd/system/network-online.target.wants/NetworkManager-wait-online.service
-rm /usr/lib/systemd/system/multi-user.target.wants/remote-fs.target
+rm /usr/lib/systemd/system/sshdgenkeys.service
 rm /usr/lib/systemd/system/docker*
 
 find /usr/lib/systemd/

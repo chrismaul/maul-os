@@ -33,29 +33,28 @@ sed -i "s/^MODULES=.*\$/MODULES=(squashfs virtio virtio_pci virtio_blk ext4 $MOD
 
 for i in \
   setup-customize-initrd.service \
-  setup-profile-home.service\
-  $SYSTEMD_SERVICES
+  setup-profile-home.service
 do
-  systemctl enable $i
+  mkdir -p /usr/lib/systemd/system/initrd-switch-root.target.wants
+  ln -s ../$i /usr/lib/systemd/system/initrd-switch-root.target.wants/$i
+done
+
+for i in $SYSTEMD_SERVICES
+do
+  mkdir -p /usr/lib/systemd/system/multi-user.target.wants
+  ln -s ../$i /usr/lib/systemd/system/multi-user.target.wants/$i
 done
 
 if [ -n "$SYSTEMD_USER_SERVICES" ]
 then
   for i in $SYSTEMD_USER_SERVICES
   do
-    systemctl --global --user enable $i
+    mkdir -p /usr/lib/systemd/user/default.target.wants
+    ln -s ../$i /usr/lib/systemd/user/default.target.wants/$i
   done
 fi
 
-find /etc/systemd
-for i in user system
-do
-  rsync -av --ignore-existing /etc/systemd/$i/ /usr/lib/systemd/$i/
-done
-
-sed -e 's/--prompt-locale//' -e 's|--timezone=America/New_York||' -i /usr/lib/systemd/system/systemd-firstboot.service
-
-cat /usr/lib/systemd/system/systemd-firstboot.service
+sed -e 's|C! /etc/pam.d|C /etc/pam.d|' -i /usr/lib/tmpfiles.d/etc.conf
 
 if [ ! -d "/usr/local/opt" ]
 then

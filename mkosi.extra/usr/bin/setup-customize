@@ -1,8 +1,8 @@
 #!/bin/sh -x
 if [ "$1" = "initrd" ]
 then
-  test -d /extra-systemd && \
-    rsync -av /extra-systemd /sysroot/etc/systemd/system
+  test -d /extra-etc && \
+    rsync -av /extra-etc/ /sysroot/etc/
 elif [ "$1" = "profile" ]
 then
   test -d /sysroot/usr/share/profile/$2/etc/ && \

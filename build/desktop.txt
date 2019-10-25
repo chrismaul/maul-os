@@ -5,7 +5,6 @@ ibmcloud-cli
 kubernetes-helm-bin
 kustomize-bin
 skaffold-bin
-cloud-init
 slack-desktop
 kubectl-bin
 plymouth-theme-dark-arch
@@ -13,3 +12,4 @@ mkosi-git
 ttf-meslo
 consolas-font
 plymouth
+motionpro
