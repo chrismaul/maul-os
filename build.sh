@@ -1,11 +1,21 @@
-#!/bin/bash
-mkdir -p $PWD/mkosi.extra/packages
-docker pull archlinux/base
-docker run --rm  \
-  -e DESTDIR=/output \
-  -e SRCDIR=/build \
-  -v /home \
-  -v $PWD/build:/build \
-  -v $PWD/mkosi.extra/:/output \
-  -v $PWD/build-packages.sh:/run.sh \
-  archlinux/base /run.sh
+#!/bin/bash -ex
+if [ -z "$1" ]
+then
+  TARGETS="desktop k3s"
+else
+  TARGETS="$@"
+fi
+
+OUTPUTDIR=output
+
+for TARGET in $TARGETS
+do
+  docker build --target $TARGET -t $TARGET .
+  docker run --name $TARGET -w / $TARGET mksquashfs usr boot /output.squashfs
+
+  test -e $OUTPUTDIR/$TARGET.squashfs || rm $OUTPUTDIR/$TARGET.squashfs
+  docker cp $TARGET:/output.squashfs $OUTPUTDIR/$TARGET.squashfs
+  docker cp $TARGET:/boot $OUTPUTDIR/$TARGET
+
+  docker rm $TARGET
+done
