@@ -10,6 +10,9 @@ RUN pacman -Syu --noconfirm
 RUN pacman -Sy --needed --noconfirm \
   base \
   acpi \
+  man-db \
+  man-pages \
+  binutils \
   expect \
   which \
   bind-tools \
