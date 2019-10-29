@@ -1,6 +1,0 @@
-#!/bin/bash -ex
-PACKAGE_DIR=/build/k8s/packages \
-PROFILE_FILES="/build/k8s/files" \
-MODULES="dm-raid raid0 raid1 raid10 raid456" \
-SYSTEMD_SERVICES="docker.service mnt-data.mount systemd-networkd.service systemd-resolved.service sshd.service cloud-init-local.service cloud-final.service" \
-post-install

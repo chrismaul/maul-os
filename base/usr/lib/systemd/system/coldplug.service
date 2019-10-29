@@ -1,0 +1,13 @@
+[Unit]
+Description=udev Coldplug all Devices
+Documentation=man:udev(7) man:systemd-udevd.service(8)
+ConditionPathIsReadWrite=/sys
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/udevadm trigger --type=subsystems --action=add
+ExecStart=/usr/bin/udevadm trigger --type=devices --action=add
+
+[Install]
+WantedBy=multi-user.target
