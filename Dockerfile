@@ -9,6 +9,7 @@ RUN sed -i "1s|^|Server = $ARCH_MIRROR/\$repo/os/\$arch\n|" /etc/pacman.d/mirror
 RUN pacman -Syu --noconfirm
 RUN pacman -Sy --needed --noconfirm \
   base \
+  squashfs-tools \
   acpi \
   man-db \
   man-pages \
@@ -54,7 +55,6 @@ RUN mkinitcpio -P
 
 FROM base AS desktop
 RUN pacman -Sy --needed --noconfirm \
-  squashfs-tools \
   atom \
   git-crypt \
   diffutils \
@@ -161,8 +161,7 @@ do \
   [ -e "/$i" ] && rsync -av /$i /usr/share/factory/$i ; \
 done
 
-RUN echo "HOOKS+=('sd-plymouth')" >> /etc/mkinitcpio.conf && \
-  echo "MODULES+=('dm-raid' 'raid0' 'raid1' 'raid10' 'raid456')" >> /etc/mkinitcpio.conf
+RUN echo "MODULES+=('dm-raid' 'raid0' 'raid1' 'raid10' 'raid456')" >> /etc/mkinitcpio.conf
 
 RUN echo \
   k3s.service \
