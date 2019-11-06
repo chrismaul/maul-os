@@ -4,11 +4,13 @@ COPY build /build
 RUN DESTDIR=/output SRCDIR=/build /run.sh
 
 FROM archlinux/base AS base
+ARG VERS=dev
 ARG ARCH_MIRROR=http://mirror.math.princeton.edu/pub/archlinux
 RUN sed -i "1s|^|Server = $ARCH_MIRROR/\$repo/os/\$arch\n|" /etc/pacman.d/mirrorlist
 RUN pacman -Syu --noconfirm
 RUN pacman -Sy --needed --noconfirm \
   base \
+  base-devel \
   squashfs-tools \
   acpi \
   man-db \
@@ -40,6 +42,9 @@ RUN pacman -Sy --needed --noconfirm \
   lvm2 \
   usbutils \
   inetutils \
+  fwupd \
+  efitools \
+  sbsigntools \
   python-netifaces
 COPY base /
 
@@ -51,13 +56,20 @@ RUN systemctl enable setup-customize-initrd.service && \
 
 RUN sed -e 's|C! /etc/pam.d|C /etc/pam.d|' -i /usr/lib/tmpfiles.d/etc.conf
 
-RUN mkinitcpio -P
+RUN cd /usr/lib/firmware && mkdir -p intel-ucode && \
+  cat /boot/intel-ucode.img | cpio -idmv && \
+  mv kernel/x86/microcode/GenuineIntel.bin intel-ucode/ && \
+  rm -r kernel
+
+RUN mkdir -p /extra-etc /etc/secureboot && update-os-id-vers base $VER
 
 FROM base AS desktop
+RUN update-os-id-vers desktop
 RUN pacman -Sy --needed --noconfirm \
   atom \
   git-crypt \
   diffutils \
+  libp11 \
   meld \
   ipmitool \
   firefox \
@@ -82,7 +94,9 @@ RUN pacman -Sy --needed --noconfirm \
   yubikey-personalization \
   yubikey-manager \
   libu2f-host \
-  pam-u2f
+  pam-u2f \
+  ruby-bundler \
+  flatpak
 
 COPY --from=packages /output/build/desktop/packages /packages
 RUN rm /opt && mkdir -p /opt
@@ -104,6 +118,8 @@ RUN for i in \
   etc/bash.bashrc \
   etc/fonts/ \
   etc/pulse/ \
+  etc/fwupd/ \
+  etc/pki/ \
   etc/NetworkManager/; \
 do \
   [ -e "/$i" ] && rsync -av /$i /usr/share/factory/$i ; \
@@ -131,10 +147,13 @@ RUN rsync --ignore-existing -av /etc/systemd/ /usr/lib/systemd/
 
 
 RUN plymouth-set-default-theme -R dark-arch
-RUN mkinitcpio -P
+
+RUN build-initramfs /boot/initramfs-dracut.img
+
 RUN [ ! -d "/usr/local/opt" ] && ( mv /opt /usr/local/opt && ln -sf usr/local/opt /opt )
 
 FROM base AS k3s
+RUN update-os-id-vers k3s
 RUN pacman -Sy --needed --noconfirm \
   dhcpcd \
   openssh \
@@ -177,5 +196,5 @@ RUN echo \
 
 RUN rsync --ignore-existing -av /etc/systemd/ /usr/lib/systemd/
 
-RUN mkinitcpio -P
+RUN build-initramfs /boot/initramfs-dracut.img
 RUN [ ! -d "/usr/local/opt" ] && ( mv /opt /usr/local/opt && ln -sf usr/local/opt /opt )

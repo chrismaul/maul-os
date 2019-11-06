@@ -1,0 +1,13 @@
+#!/bin/bash
+ID=$1
+VERS=$1
+if [ -n "$VERS" ]
+then
+  sed -e "s/^BUILD_ID=.*/BUILD_ID=$VERS/" -i /usr/lib/os-release
+fi
+export NAME="Maul OS $ID"
+sed \
+  -e "s/^NAME=\".*\"/NAME=\"$NAME\"/" \
+  -e "s/^PRETTY_NAME=\".*\"/PRETTY_NAME=\"$NAME\"/" \
+  -e "s/^ID=.*/ID=maul-os-$ID/" \
+  -i /usr/lib/os-release

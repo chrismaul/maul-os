@@ -1,0 +1,3 @@
+#!/bin/bash
+KER_VER=$(ls /usr/lib/modules/)
+dracut --kver $KER_VER --force "$@"

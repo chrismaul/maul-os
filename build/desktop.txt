@@ -13,3 +13,4 @@ ttf-meslo
 consolas-font
 plymouth
 motionpro
+dracut-git

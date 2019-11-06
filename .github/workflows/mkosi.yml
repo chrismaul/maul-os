@@ -17,18 +17,28 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1
+      - name: Get Release Tag
+        id: tag_release
+        run: ./.get-next-tag.sh
+        if: github.event_name == 'schedule' || github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Install Dependency
         run: sudo ./.setup-ci-dependency
       - name: Make desktop
         run: ./build.sh desktop
+        env:
+          VERS: ${{ steps.tag_release.outputs.tag_name || 'pr' }}
       - name: Making k3s
         run: ./build.sh k3s
+        env:
+          VERS: ${{ steps.tag_release.outputs.tag_name || 'pr' }}
       - name: Tag release
-        id: tag_release
         run: ./.tag-release.sh
         if: github.event_name == 'schedule' || github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.tag_release.outputs.tag_name }}
       - name: Create Release
         id: create_release
         uses: actions/create-release@master
