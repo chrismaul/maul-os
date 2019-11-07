@@ -41,9 +41,9 @@ install() {
 
     rm $initdir/$systemdsystemunitdir/systemd-tmpfiles-setup.service $initdir/$systemdsystemunitdir/sysinit.target.wants/systemd-tmpfiles-setup.service
 
-    inst_multiple -o \
+    inst_multiple \
         $systemdsystemunitdir/emergency.service \
         $systemdsystemunitdir/emergency.target \
         $systemdsystemunitdir/rescue.target \
-        $systemdsystemunitdir/rescue.service 
+        $systemdsystemunitdir/rescue.service
 }

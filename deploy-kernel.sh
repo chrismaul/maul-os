@@ -1,6 +1,7 @@
 #!/bin/bash
 UEFI=no
-while getopts ":v:c:k:u" opt; do
+ADD_OPTS=""
+while getopts ":v:c:k:s:a:u" opt; do
   case ${opt} in
     v)
       VERS=$OPTARG
@@ -13,6 +14,12 @@ while getopts ":v:c:k:u" opt; do
       ;;
     k)
       KERN_OPTS=$OPTARG
+      ;;
+    s)
+      SEC_KEYS=$OPTARG
+      ;;
+    a)
+      ADD_OPTS=$OPTARG
       ;;
     \? )
       echo "Invalid option: $OPTARG" 1>&2
@@ -34,22 +41,28 @@ sudo cp -v $MNT_DIR/boot/vmlinuz-linux /boot/$VERS
 if [ -n "$USER_INIT" ]
 then
   sudo mount --bind $USER_INIT $MNT_DIR/extra-etc
-  sudo mount -t tmpfs tmpfs $MNT_DIR/var/tmp
-  sudo mkdir -p $MNT_DIR/var/tmp/overlay/{upper,work}
-  sudo mount -t overlay overlay -o lowerdir=$MNT_DIR/boot,upperdir=$MNT_DIR/var/tmp/overlay/upper/,workdir=$MNT_DIR/var/tmp/overlay/work/ $MNT_DIR/boot
-  if [ "$UEFI" = "yes" ]
-  then
-    sudo chroot $MNT_DIR build-initramfs --uefi --kernel-cmdline "$KERN_OPTS" /boot/$VERS.efi
-  else
-    sudo chroot $MNT_DIR build-initramfs
-  fi
+fi
+sudo mount -t tmpfs tmpfs $MNT_DIR/var/tmp
+sudo mkdir -p $MNT_DIR/var/tmp/overlay/{upper,work}
+sudo mount -t overlay overlay -o lowerdir=$MNT_DIR/boot,upperdir=$MNT_DIR/var/tmp/overlay/upper/,workdir=$MNT_DIR/var/tmp/overlay/work/ $MNT_DIR/boot
+if [ -n "$SEC_KEYS" ]
+then
+  sudo mount --bind $SEC_KEYS $MNT_DIR/etc/secureboot
+fi
+if [ "$UEFI" = "yes" ]
+then
+  SRC=boot/$VERS.efi
+  sudo chroot $MNT_DIR build-initramfs --uefi --kernel-cmdline "$KERN_OPTS" $ADD_OPTS /boot/$VERS.efi
+else
+  SRC=boot/initramfs-dracut.img
+  sudo chroot $MNT_DIR build-initramfs $ADD_OPTS /boot/initramfs-dracut.img
 fi
 DEST=/boot/$VERS
 if [ "$UEFI" = "yes" ]
 then
-  DEST="$DEST/boot.efi"
+  DEST="/boot/efi/Linux/$VERS.efi"
 fi
-#sudo cp -v $MNT_DIR/boot/initramfs-dracut.img $DEST
+sudo cp -v $MNT_DIR/$SRC $DEST
 
-#sudo umount -R $MNT_DIR
-#rmdir $MNT_DIR
+sudo umount -R $MNT_DIR
+rmdir $MNT_DIR

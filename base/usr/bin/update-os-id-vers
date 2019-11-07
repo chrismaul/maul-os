@@ -1,5 +1,6 @@
 #!/bin/bash
 ID=$1
+shift
 VERS=$1
 if [ -n "$VERS" ]
 then

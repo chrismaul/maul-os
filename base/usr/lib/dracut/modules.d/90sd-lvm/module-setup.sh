@@ -32,13 +32,11 @@ install() {
     inst /etc/lvm/lvm.conf
     inst_libdir_file "libdevmapper-event-lvm*.so"
 
-    inst_multiple -o \
+    inst_multiple \
         $systemdsystemunitdir/lvm2-lvmetad.socket \
         $systemdsystemunitdir/sysinit.target.wants/lvm2-lvmetad.socket \
         $systemdsystemunitdir/lvm2-lvmetad.service \
-        $systemdsystemunitdir/sysinit.target.wants/lvm2-lvmetad.service \
         $systemdsystemunitdir/lvm2-pvscan@.service \
-        $systemdsystemunitdir/sysinit.target.wants/lvm2-pvscan@.service \
         $systemdsystemunitdir/lvm2-monitor.service \
         $systemdsystemunitdir/sysinit.target.wants/lvm2-monitor.service \
 	$systemdutildir/system-generators/lvm2-activation-generator

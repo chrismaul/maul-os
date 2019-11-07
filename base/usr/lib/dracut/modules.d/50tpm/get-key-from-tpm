@@ -1,0 +1,19 @@
+#!/bin/bash -x
+for i in tpm_crb tpm_tis tpm_tis_core tpm rng_core
+do
+  echo "Loading module $i"
+  modprobe $i
+done
+
+echo "Waiting for TPM Dev"
+
+while [ ! -e /dev/tpm0 ]
+do
+  /usr/bin/sleep 1
+  echo "."
+done
+
+echo "Unlocking key"
+export TPM2TOOLS_TCTI="device:/dev/tpm0"
+tpm2_unseal -c 0x81000000 -p pcr:sha256:0,1,7 -o /tmp/crypto_keyfile.bin
+echo "Finish unlocking key"

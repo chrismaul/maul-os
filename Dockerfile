@@ -45,7 +45,9 @@ RUN pacman -Sy --needed --noconfirm \
   fwupd \
   efitools \
   sbsigntools \
-  python-netifaces
+  python-netifaces \
+  tpm2-tools \
+  tpm2-abrmd
 COPY base /
 
 RUN sed -e "s/^HOOKS=.*\$/HOOKS=(base systemd sd-vroot sd-localization sd-lvm2 modconf block keyboard sd-vconsole sd-encrypt)/" \
@@ -61,7 +63,7 @@ RUN cd /usr/lib/firmware && mkdir -p intel-ucode && \
   mv kernel/x86/microcode/GenuineIntel.bin intel-ucode/ && \
   rm -r kernel
 
-RUN mkdir -p /extra-etc /etc/secureboot && update-os-id-vers base $VER
+RUN mkdir -p /extra-etc /etc/secureboot && update-os-id-vers base $VERS
 
 FROM base AS desktop
 RUN update-os-id-vers desktop

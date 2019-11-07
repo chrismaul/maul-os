@@ -21,7 +21,7 @@ install() {
     inst setup-customize
 
     test -d /extra-etc && rsync -av /extra-etc/ $initdir/extra-etc/
-    inst_multiple -o \
+    inst_multiple \
         $systemdsystemunitdir/setup-customize-initrd.service \
         $systemdsystemunitdir/initrd-switch-root.target.wants/setup-customize-initrd.service \
         $systemdsystemunitdir/setup-profile-home.service \
