@@ -1,5 +1,5 @@
 [Match]
-Name=*
+Name=enp*
 
 [Network]
 DHCP=ipv4

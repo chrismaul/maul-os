@@ -1,3 +1,4 @@
 #!/bin/bash
-KER_VER=$(ls /usr/lib/modules/)
+KER_VER=$(ls /usr/lib/modules/ | head -n1)
+echo Building initramfs for $KER_VER
 dracut --kver $KER_VER --force "$@"

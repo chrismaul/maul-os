@@ -14,3 +14,4 @@ consolas-font
 plymouth
 motionpro
 dracut-git
+mokutil-git

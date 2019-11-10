@@ -49,12 +49,13 @@ RUN pacman -Sy --needed --noconfirm \
   tpm2-tools \
   tpm2-abrmd
 COPY base /
-
+COPY deploy-kernel.sh /usr/bin/
 RUN sed -e "s/^HOOKS=.*\$/HOOKS=(base systemd sd-vroot sd-localization sd-lvm2 modconf block keyboard sd-vconsole sd-encrypt)/" \
   -e "s/^MODULES=.*\$/MODULES=(squashfs virtio virtio_pci virtio_blk ext4)/" -i /etc/mkinitcpio.conf
 
 RUN systemctl enable setup-customize-initrd.service && \
-  systemctl enable setup-profile-home.service
+  systemctl enable setup-profile-home.service && \
+  systemctl enable coldplug.service
 
 RUN sed -e 's|C! /etc/pam.d|C /etc/pam.d|' -i /usr/lib/tmpfiles.d/etc.conf
 
@@ -101,7 +102,6 @@ RUN pacman -Sy --needed --noconfirm \
   flatpak
 
 COPY --from=packages /output/build/desktop/packages /packages
-RUN rm /opt && mkdir -p /opt
 RUN pacman -U /packages/* --noconfirm --needed
 RUN rm -r /packages
 COPY desktop /
@@ -133,7 +133,6 @@ RUN echo "HOOKS+=('sd-plymouth' 'autodetect')" >> /etc/mkinitcpio.conf && \
 RUN echo \
   pcscd.service \
   bluetooth.service \
-  coldplug.service \
   gdm.service \
   | xargs -n 1 systemctl enable
 
@@ -152,21 +151,27 @@ RUN plymouth-set-default-theme -R dark-arch
 
 RUN build-initramfs /boot/initramfs-dracut.img
 
-RUN [ ! -d "/usr/local/opt" ] && ( mv /opt /usr/local/opt && ln -sf usr/local/opt /opt )
+RUN mv /opt /usr/local/opt
 
-FROM base AS k3s
-RUN update-os-id-vers k3s
+FROM base AS k8s
+RUN update-os-id-vers k8s
 RUN pacman -Sy --needed --noconfirm \
   dhcpcd \
   openssh \
   nfs-utils \
-  grub
+  grub \
+  ebtables \
+  ethtool \
+  socat \
+  nfs-utils \
+  linux-lts \
+  linux-lts-headers
 
-COPY --from=packages /output/build/k3s/packages /packages
-RUN rm /opt && mkdir -p /opt
+
+COPY --from=packages /output/build/k8s/packages /packages
 RUN pacman -U /packages/* --noconfirm --needed
 RUN rm -r /packages
-COPY k3s /
+COPY k8s /
 RUN for i in \
   etc/environment \
   etc/xdg/ \
@@ -174,6 +179,7 @@ RUN for i in \
   etc/security/ \
   etc/ca-certificates/ \
   etc/ssl/ \
+  etc/ssh/ \
   etc/pam.d/ \
   etc/profile.d/ \
   etc/bash.bashrc \
@@ -182,21 +188,31 @@ do \
   [ -e "/$i" ] && rsync -av /$i /usr/share/factory/$i ; \
 done
 
-RUN echo "MODULES+=('dm-raid' 'raid0' 'raid1' 'raid10' 'raid456')" >> /etc/mkinitcpio.conf
+RUN echo "HostKey /mnt/data/etc/ssh/ssh_host_rsa_key " >> /usr/share/factory/etc/ssh/sshd_config && \
+  echo "HostKey /mnt/data/etc/ssh/ssh_host_ecdsa_key">> /usr/share/factory/etc/ssh/sshd_config && \
+  echo "HostKey /mnt/data/etc/ssh/ssh_host_ed25519_key" >> /usr/share/factory/etc/ssh/sshd_config
+
+RUN sed -e "s/docker.service/containerd.service/" -i /usr/lib/systemd/system/kubelet.service
 
 RUN echo \
-  k3s.service \
-  docker.service \
   mnt-data.mount \
   systemd-networkd.service \
   systemd-resolved.service \
   sshd.service \
-  cloud-init-local.service \
+  kubelet.service \
+  containerd.service \
+  cloud-init.service \
   cloud-final.service \
+  var-lib-kubelet.mount \
   | xargs -n 1 systemctl enable
-
 
 RUN rsync --ignore-existing -av /etc/systemd/ /usr/lib/systemd/
 
+RUN export CRI_VERSION="$( curl --silent "https://api.github.com/repos/kubernetes-sigs/cri-tools/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' )" && \
+curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRI_VERSION/crictl-$CRI_VERSION-linux-amd64.tar.gz -o /tmp/cri.tar.gz && \
+tar zxvf /tmp/cri.tar.gz -C /usr/bin && \
+rm -f /tmp/cri.tar.gz
+
 RUN build-initramfs /boot/initramfs-dracut.img
-RUN [ ! -d "/usr/local/opt" ] && ( mv /opt /usr/local/opt && ln -sf usr/local/opt /opt )
+RUN ln -s /mnt/data/opt-cni /opt/cni && ls -lah /opt && mkdir -p /usr/libexec
+RUN mv /opt /usr/local/opt

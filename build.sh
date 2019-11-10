@@ -21,6 +21,7 @@ do
 
   test -e $OUTPUTDIR/$TARGET.squashfs && rm $OUTPUTDIR/$TARGET.squashfs
   docker cp $TARGET:/output.squashfs $OUTPUTDIR/$TARGET.squashfs
+  test -d $OUTPUTDIR/$TARGET && rm -r $OUTPUTDIR/$TARGET
   docker cp $TARGET:/boot $OUTPUTDIR/$TARGET
 
   docker rm $TARGET

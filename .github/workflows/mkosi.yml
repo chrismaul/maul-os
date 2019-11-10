@@ -29,8 +29,8 @@ jobs:
         run: ./build.sh desktop
         env:
           VERS: ${{ steps.tag_release.outputs.tag_name || 'pr' }}
-      - name: Making k3s
-        run: ./build.sh k3s
+      - name: Making k8s
+        run: ./build.sh k8s
         env:
           VERS: ${{ steps.tag_release.outputs.tag_name || 'pr' }}
       - name: Tag release
@@ -67,6 +67,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./output/k3s.squashfs
+          asset_path: ./output/k8s.squashfs
           asset_name: k3s.squashfs
           asset_content_type: application/octet-stream

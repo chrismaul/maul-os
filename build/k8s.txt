@@ -1,5 +1,7 @@
-kubectl-bin
 cloud-init
-kubectl-bin
+kubernetes-bin
 netplan
 dracut-git
+mokutil-git
+zfs-dkms
+zfs-utils
