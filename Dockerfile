@@ -99,7 +99,8 @@ RUN pacman -Sy --needed --noconfirm \
   libu2f-host \
   pam-u2f \
   ruby-bundler \
-  flatpak
+  flatpak \
+  vlc
 
 COPY --from=packages /output/build/desktop/packages /packages
 RUN pacman -U /packages/* --noconfirm --needed
