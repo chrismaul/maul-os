@@ -4,7 +4,6 @@ COPY build /build
 RUN DESTDIR=/output SRCDIR=/build /run.sh
 
 FROM archlinux/base AS base
-ARG VERS=dev
 ARG ARCH_MIRROR=http://mirror.math.princeton.edu/pub/archlinux
 RUN sed -i "1s|^|Server = $ARCH_MIRROR/\$repo/os/\$arch\n|" /etc/pacman.d/mirrorlist
 RUN pacman -Syu --noconfirm
@@ -21,8 +20,6 @@ RUN pacman -Sy --needed --noconfirm \
   bind-tools \
   bc \
   cpio \
-  docker \
-  docker-compose \
   jq \
   rsync \
   vim \
@@ -67,7 +64,6 @@ RUN cd /usr/lib/firmware && mkdir -p intel-ucode && \
 RUN mkdir -p /extra-etc /etc/secureboot && update-os-id-vers base $VERS
 
 FROM base AS desktop
-RUN update-os-id-vers desktop
 RUN pacman -Sy --needed --noconfirm \
   atom \
   git-crypt \
@@ -81,6 +77,8 @@ RUN pacman -Sy --needed --noconfirm \
   wireless_tools \
   iw \
   wpa_supplicant \
+  docker \
+  docker-compose \
   kubectx \
   fzf \
   weston \
@@ -149,13 +147,13 @@ RUN rsync --ignore-existing -av /etc/systemd/ /usr/lib/systemd/
 
 
 RUN plymouth-set-default-theme -R dark-arch
-
+ARG VERS=dev
+RUN update-os-id-vers desktop $VERS
 RUN build-initramfs /boot/initramfs-dracut.img
 
 RUN mv /opt /usr/local/opt
 
 FROM base AS k8s
-RUN update-os-id-vers k8s
 RUN pacman -Sy --needed --noconfirm \
   dhcpcd \
   openssh \
@@ -213,7 +211,8 @@ RUN export CRI_VERSION="$( curl --silent "https://api.github.com/repos/kubernete
 curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRI_VERSION/crictl-$CRI_VERSION-linux-amd64.tar.gz -o /tmp/cri.tar.gz && \
 tar zxvf /tmp/cri.tar.gz -C /usr/bin && \
 rm -f /tmp/cri.tar.gz
-
+ARG VERS=dev
+RUN update-os-id-vers k8s $VERS
 RUN build-initramfs /boot/initramfs-dracut.img
 RUN ln -s /mnt/data/opt-cni /opt/cni && ls -lah /opt && mkdir -p /usr/libexec
 RUN mv /opt /usr/local/opt

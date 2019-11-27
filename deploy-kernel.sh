@@ -30,7 +30,7 @@ while getopts ":v:c:k:s:a:u" opt; do
   esac
 done
 
-veritysetup format /dev/root/${VERS} /dev/root/${VERS}-verity | sudo tee /tmp/verity.txt
+sudo veritysetup format /dev/root/${VERS} /dev/root/${VERS}-verity | sudo tee /tmp/verity.txt
 
 export ROOTHASH=$(cat /tmp/verity.txt | grep "Root hash:" | cut -f 2)
 
@@ -54,14 +54,14 @@ else
   KERN_OPTS="$KERN_OPTS roothash=$ROOTHASH"
 fi
 
-if [ -n "$USER_INIT" ]
-then
-  sudo mount --bind $USER_INIT $MNT_DIR/extra-etc
-fi
 TMPFS_DIR=$(mktemp -d)
 sudo mount -t tmpfs tmpfs $TMPFS_DIR
 sudo mkdir -p $TMPFS_DIR/{upper,work}
 sudo mount -t overlay overlay -o lowerdir=$MNT_DIR,upperdir=$TMPFS_DIR/upper/,workdir=$TMPFS_DIR/work/ $MNT_DIR
+if [ -n "$USER_INIT" ]
+then
+  sudo mount --bind $USER_INIT $MNT_DIR/extra-etc
+fi
 if [ -n "$SEC_KEYS" ]
 then
   sudo mount --bind $SEC_KEYS $MNT_DIR/etc/secureboot
@@ -85,7 +85,7 @@ if [ "$UEFI" != "yes" ]
 then
   echo $KERN_OPTS
 fi
-
+cd
 sudo umount -R $MNT_DIR
 rmdir $MNT_DIR
 sudo umount -R $TMPFS_DIR
