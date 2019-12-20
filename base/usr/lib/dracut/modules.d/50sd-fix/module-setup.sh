@@ -19,7 +19,7 @@ depends() {
 install() {
     inst /usr/lib/systemd/systemd-sulogin-shell
 
-    inst /usr/bin/sulogin
+    inst sulogin
 
     inst systemctl
     inst blkid
@@ -27,7 +27,7 @@ install() {
     inst kmod
 
 
-    inst "$(readlink -f /usr/lib/libnss_files.so)"
+    inst_libdir_file libnss_files.so
     printf '%s\n' >"$initdir/etc/nsswitch.conf" \
         'passwd: files' \
         'group: files' \

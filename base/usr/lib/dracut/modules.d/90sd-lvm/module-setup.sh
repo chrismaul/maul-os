@@ -25,43 +25,27 @@ install() {
     local _i
 
     inst lvm
-    inst lvmetad
+    inst -o lvmconfig
+    inst -o lvmetad
 
     inst_rules 11-dm-lvm.rules 69-dm-lvm-metad.rules 95-dm-notify.rules 10-dm.rules 13-dm-disk.rules 10-dm.rules
 
     inst /etc/lvm/lvm.conf
     inst_libdir_file "libdevmapper-event-lvm*.so"
 
-    inst_multiple \
+    inst_multiple -o \
         $systemdsystemunitdir/lvm2-lvmetad.socket \
         $systemdsystemunitdir/sysinit.target.wants/lvm2-lvmetad.socket \
-        $systemdsystemunitdir/lvm2-lvmetad.service \
+        $systemdsystemunitdir/lvm2-lvmetad.service
+
+    inst_multiple -o \
         $systemdsystemunitdir/lvm2-pvscan@.service \
         $systemdsystemunitdir/lvm2-monitor.service \
         $systemdsystemunitdir/sysinit.target.wants/lvm2-monitor.service \
-	$systemdutildir/system-generators/lvm2-activation-generator
+	      $systemdutildir/system-generators/lvm2-activation-generator
 
-
-    if [[ $hostonly ]] && type -P lvs &>/dev/null; then
-        for dev in "${!host_fs_types[@]}"; do
-            [ -e /sys/block/${dev#/dev/}/dm/name ] || continue
-            dev=$(</sys/block/${dev#/dev/}/dm/name)
-            eval $(dmsetup splitname --nameprefixes --noheadings --rows "$dev" 2>/dev/null)
-            [[ ${DM_VG_NAME} ]] && [[ ${DM_LV_NAME} ]] || continue
-            case "$(lvs --noheadings -o segtype ${DM_VG_NAME} 2>/dev/null)" in
-                *thin*|*cache*|*era*)
-                    inst_multiple -o thin_dump thin_restore thin_check thin_repair \
-                                  cache_dump cache_restore cache_check cache_repair \
-                                  era_check era_dump era_invalidate era_restore
-                    break;;
-            esac
-        done
-    fi
-
-    if ! [[ $hostonly ]]; then
-        inst_multiple -o thin_dump thin_restore thin_check thin_repair \
-                      cache_dump cache_restore cache_check cache_repair \
-                      era_check era_dump era_invalidate era_restore
-    fi
+    inst_multiple -o thin_dump thin_restore thin_check thin_repair \
+                  cache_dump cache_restore cache_check cache_repair \
+                  era_check era_dump era_invalidate era_restore
 
 }

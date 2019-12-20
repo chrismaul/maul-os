@@ -1,175 +1,51 @@
-FROM archlinux/base AS packages
-COPY build-packages.sh /run.sh
-COPY build /build
-RUN DESTDIR=/output SRCDIR=/build /run.sh
-
-FROM archlinux/base AS base
-ARG ARCH_MIRROR=http://mirror.math.princeton.edu/pub/archlinux
-RUN sed -i "1s|^|Server = $ARCH_MIRROR/\$repo/os/\$arch\n|" /etc/pacman.d/mirrorlist
-RUN pacman -Syu --noconfirm
-RUN pacman -Sy --needed --noconfirm \
-  base \
-  base-devel \
-  squashfs-tools \
-  acpi \
-  man-db \
-  man-pages \
-  binutils \
-  expect \
-  which \
-  bind-tools \
-  bc \
-  cpio \
-  jq \
-  rsync \
-  vim \
+FROM centos AS builder
+RUN dnf install -y \
+  rpm-build \
+  git \
+  make \
+  asciidoc \
   wget \
   curl \
-  cryptsetup \
-  device-mapper \
-  dhcpcd \
-  e2fsprogs \
-  efibootmgr \
-  intel-ucode \
-  linux \
-  linux-headers \
-  linux-firmware \
-  systemd \
-  sudo \
-  lvm2 \
-  usbutils \
-  inetutils \
-  fwupd \
-  efitools \
-  sbsigntools \
-  python-netifaces \
-  tpm2-tools \
-  tpm2-abrmd
-COPY base /
-COPY deploy-kernel.sh /usr/bin/
-RUN sed -e "s/^HOOKS=.*\$/HOOKS=(base systemd sd-vroot sd-localization sd-lvm2 modconf block keyboard sd-vconsole sd-encrypt)/" \
-  -e "s/^MODULES=.*\$/MODULES=(squashfs virtio virtio_pci virtio_blk ext4)/" -i /etc/mkinitcpio.conf
-
-RUN systemctl enable setup-customize-initrd.service && \
-  systemctl enable setup-profile-home.service && \
-  systemctl enable coldplug.service
-
-RUN sed -e 's|C! /etc/pam.d|C /etc/pam.d|' -i /usr/lib/tmpfiles.d/etc.conf
-
-RUN cd /usr/lib/firmware && mkdir -p intel-ucode && \
-  cat /boot/intel-ucode.img | cpio -idmv && \
-  mv kernel/x86/microcode/GenuineIntel.bin intel-ucode/ && \
-  rm -r kernel
-
-RUN mkdir -p /extra-etc /etc/secureboot && update-os-id-vers base $VERS
-
-FROM base AS desktop
-RUN pacman -Sy --needed --noconfirm \
-  atom \
-  git-crypt \
-  diffutils \
-  libp11 \
-  meld \
-  ipmitool \
-  firefox \
-  aspell-en \
-  hunspell-en_US \
-  wireless_tools \
-  iw \
-  wpa_supplicant \
-  docker \
-  docker-compose \
-  kubectx \
-  fzf \
-  weston \
-  gnome \
-  gdm \
-  networkmanager \
-  evolution \
-  evolution-ews \
-  dmidecode \
-  networkmanager-openconnect \
-  pcsclite \
-  opensc \
-  ccid \
-  yubikey-personalization \
-  yubikey-manager \
-  libu2f-host \
-  pam-u2f \
-  ruby-bundler \
-  flatpak \
-  vlc
-
-COPY --from=packages /output/build/desktop/packages /packages
-RUN pacman -U /packages/* --noconfirm --needed
-RUN rm -r /packages
-COPY desktop /
-RUN for i in \
-  etc/environment \
-  etc/xdg/ \
-  etc/cloud/ \
-  etc/security/ \
-  etc/gdm/ \
-  etc/geoclue/ \
-  etc/UPower/ \
-  etc/ca-certificates/ \
-  etc/ssl/ \
-  etc/pam.d/ \
-  etc/profile.d/ \
-  etc/bash.bashrc \
-  etc/fonts/ \
-  etc/pulse/ \
-  etc/fwupd/ \
-  etc/pki/ \
-  etc/NetworkManager/; \
-do \
-  [ -e "/$i" ] && rsync -av /$i /usr/share/factory/$i ; \
-done
-
-RUN echo "HOOKS+=('sd-plymouth' 'autodetect')" >> /etc/mkinitcpio.conf && \
-  echo "MODULES+=('i915')" >> /etc/mkinitcpio.conf
-
-RUN echo \
-  pcscd.service \
-  bluetooth.service \
-  gdm.service \
-  | xargs -n 1 systemctl enable
-
-RUN mkdir -p /usr/lib/systemd/user/default.target.wants && \
-  ln -s ../docker.service /usr/lib/systemd/user/default.target.wants/
-
-RUN rm /usr/lib/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist && cp /etc/libccid_Info.plist /usr/lib/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist && \
-  rm /usr/lib/systemd/system/sshdgenkeys.service && \
-  rm /usr/lib/systemd/system/docker* && \
-  mv /etc/dbus-1/system.d/wpa_supplicant.conf /usr/share/dbus-1/system.d/
-
-RUN rsync --ignore-existing -av /etc/systemd/ /usr/lib/systemd/
-
-
-RUN plymouth-set-default-theme -R dark-arch
-ARG VERS=dev
-RUN update-os-id-vers desktop $VERS
-RUN build-initramfs /boot/initramfs-dracut.img
-
-RUN mv /opt /usr/local/opt
-
-FROM base AS k8s
-RUN pacman -Sy --needed --noconfirm \
-  dhcpcd \
+  dnf-plugins-core
+RUN dnf config-manager --set-enabled PowerTools
+RUN git clone https://github.com/dracutdevs/dracut.git
+WORKDIR /dracut
+RUN dnf builddep -y dracut.spec
+RUN make rpm
+RUN mkdir -p /output && mv *.rpm /output
+FROM centos AS k8s
+RUN dnf install epel-release -y
+RUN dnf install -y \
+  squashfs-tools \
   openssh \
-  nfs-utils \
-  grub \
-  ebtables \
-  ethtool \
+  openssh-server \
+  iptables \
+  iptables-ebtables \
   socat \
   nfs-utils \
-  linux-lts \
-  linux-lts-headers
+  which \
+  bc \
+  jq \
+  rsync \
+  lvm2 \
+  sudo \
+  tpm2-tools \
+  tpm2-abrmd \
+  mokutil \
+  efivar \
+  openvpn \
+  cloud-init \
+  vim \
+  kernel \
+  systemd \
+  NetworkManager
 
+COPY --from=builder /output /rpms
 
-COPY --from=packages /output/build/k8s/packages /packages
-RUN pacman -U /packages/* --noconfirm --needed
-RUN rm -r /packages
+RUN dnf install /rpms/dracut{,-tools,-network,-squash}-[0-9]*.x86_64.rpm -y --allowerasing && rm -r /rpms
+
+COPY base /
+COPY deploy-kernel.sh /usr/bin/
 COPY k8s /
 RUN for i in \
   etc/environment \
@@ -184,35 +60,67 @@ RUN for i in \
   etc/bash.bashrc \
   ; \
 do \
-  [ -e "/$i" ] && rsync -av /$i /usr/share/factory/$i ; \
+  [ ! -e "/$i" ] || rsync -av /$i /usr/share/factory/$i ; \
 done
 
 RUN echo "HostKey /mnt/data/etc/ssh/ssh_host_rsa_key " >> /usr/share/factory/etc/ssh/sshd_config && \
   echo "HostKey /mnt/data/etc/ssh/ssh_host_ecdsa_key">> /usr/share/factory/etc/ssh/sshd_config && \
   echo "HostKey /mnt/data/etc/ssh/ssh_host_ed25519_key" >> /usr/share/factory/etc/ssh/sshd_config
 
-RUN sed -e "s/docker.service/containerd.service/" -i /usr/lib/systemd/system/kubelet.service
+RUN mkdir -p /extra-etc /etc/secureboot /tmp/download
+
+RUN export CRI_VERSION="$( curl --silent "https://api.github.com/repos/kubernetes-sigs/cri-tools/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' )" && \
+  curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRI_VERSION/crictl-$CRI_VERSION-linux-amd64.tar.gz -o /tmp/download/cri.tar.gz && \
+  tar zxvf /tmp/download/cri.tar.gz -C /usr/bin && \
+  rm -f /tmp/download/cri.tar.gz
+
+ARG CONTAINERD_VERS=1.3.1
+RUN curl -L https://github.com/containerd/containerd/releases/download/v$CONTAINERD_VERS/containerd-$CONTAINERD_VERS.linux-amd64.tar.gz -o /tmp/download/containerd.tar.gz && \
+  tar xf /tmp/download/containerd.tar.gz -C /usr && \
+  curl -L https://github.com/containerd/containerd/raw/master/containerd.service -o /usr/lib/systemd/system/containerd.service && \
+  rm /tmp/download/containerd.tar.gz
+
+ARG KUBE_VERS=1.16.3
+RUN curl -L https://dl.k8s.io/v$KUBE_VERS/kubernetes-server-linux-amd64.tar.gz -o /tmp/download/kube.tar.gz && \
+  tar xf /tmp/download/kube.tar.gz --strip-components=2 -C /usr \
+    kubernetes/server/bin/kubelet \
+    kubernetes/server/bin/kube-scheduler \
+    kubernetes/server/bin/mounter \
+    kubernetes/server/bin/apiextensions-apiserver \
+    kubernetes/server/bin/kube-proxy \
+    kubernetes/server/bin/kubeadm \
+    kubernetes/server/bin/kube-controller-manager \
+    kubernetes/server/bin/hyperkube \
+    kubernetes/server/bin/kube-apiserver \
+    kubernetes/server/bin/kubectl
+
+ARG RUNC_VERS=v1.0.0-rc9
+RUN cd /tmp/download && \
+  curl -L https://github.com/opencontainers/runc/releases/download/$RUNC_VERS/runc.amd64 -O && \
+  curl -L https://github.com/opencontainers/runc/releases/download/$RUNC_VERS/runc.sha256sum -O && \
+  curl -L https://github.com/opencontainers/runc/releases/download/$RUNC_VERS/runc.amd64.asc -O && \
+  sha256sum -c runc.sha256sum --ignore-missing && \
+  mv runc.amd64 /usr/bin/runc && \
+  chmod 755 /usr/bin/runc
+RUN rm -r /tmp/download
 
 RUN echo \
   mnt-data.mount \
-  systemd-networkd.service \
-  systemd-resolved.service \
+  NetworkManager.service \
   sshd.service \
   kubelet.service \
   containerd.service \
   cloud-init.service \
   cloud-final.service \
-  var-lib-kubelet.mount \
+  lvm2-monitor.service \
   | xargs -n 1 systemctl enable
 
 RUN rsync --ignore-existing -av /etc/systemd/ /usr/lib/systemd/
 
-RUN export CRI_VERSION="$( curl --silent "https://api.github.com/repos/kubernetes-sigs/cri-tools/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' )" && \
-curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRI_VERSION/crictl-$CRI_VERSION-linux-amd64.tar.gz -o /tmp/cri.tar.gz && \
-tar zxvf /tmp/cri.tar.gz -C /usr/bin && \
-rm -f /tmp/cri.tar.gz
+RUN rsync -av /etc/dbus-1/system.d/ /usr/share/dbus-1/system.d/
+
 ARG VERS=dev
 RUN update-os-id-vers k8s $VERS
-RUN build-initramfs /boot/initramfs-dracut.img
+RUN build-initramfs
 RUN ln -s /mnt/data/opt-cni /opt/cni && ls -lah /opt && mkdir -p /usr/libexec
 RUN mv /opt /usr/local/opt

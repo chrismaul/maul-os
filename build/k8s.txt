@@ -1,7 +1,0 @@
-cloud-init
-kubernetes-bin
-netplan
-dracut-git
-mokutil-git
-zfs-dkms
-zfs-utils

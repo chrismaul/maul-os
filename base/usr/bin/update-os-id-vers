@@ -2,6 +2,10 @@
 ID=$1
 shift
 VERS=$1
+if [ ! -f /usr/lib/os-release ]
+then
+  cp -av /etc/os-release /usr/lib/os-release
+fi
 if [ -n "$VERS" ]
 then
   sed -e "s/^BUILD_ID=.*/BUILD_ID=$VERS/" -i /usr/lib/os-release
