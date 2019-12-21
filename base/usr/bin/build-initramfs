@@ -1,4 +1,22 @@
 #!/bin/bash
-KER_VER=$(ls /usr/lib/modules/ | head -n1)
+KER_GREP='[0-9]$'
+LTS="no"
+if [ "$1" = "lts" ]
+then
+  LTS="yes"
+  shift
+fi
+if [ "$LTS" = "yes" ]
+then
+  KER_GREP='lts$'
+fi
+KER_VER=$(ls /usr/lib/modules/ | grep "$KER_GREP" | head -n1)
 echo Building initramfs for $KER_VER
-dracut --kver $KER_VER --force "$@"
+KERNEL=/boot/vmlinuz-linux
+
+if [ "$LTS" = "yes" ]
+then
+  KERNEL="$KERNEL-lts"
+fi
+
+dracut --kver $KER_VER --force --kernel-image $KERNEL "$@"

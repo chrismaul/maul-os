@@ -4,7 +4,6 @@ COPY build /build
 RUN DESTDIR=/output SRCDIR=/build /run.sh
 
 FROM archlinux/base AS base
-ARG VERS=dev
 ARG ARCH_MIRROR=http://mirror.math.princeton.edu/pub/archlinux
 RUN sed -i "1s|^|Server = $ARCH_MIRROR/\$repo/os/\$arch\n|" /etc/pacman.d/mirrorlist
 RUN pacman -Syu --noconfirm
@@ -21,6 +20,7 @@ RUN pacman -Sy --needed --noconfirm \
   bind-tools \
   bc \
   cpio \
+  ca-certificates \
   docker \
   docker-compose \
   jq \
@@ -47,7 +47,8 @@ RUN pacman -Sy --needed --noconfirm \
   sbsigntools \
   python-netifaces \
   tpm2-tools \
-  tpm2-abrmd
+  tpm2-abrmd \
+  screen
 COPY base /
 COPY deploy-kernel.sh /usr/bin/
 RUN sed -e "s/^HOOKS=.*\$/HOOKS=(base systemd sd-vroot sd-localization sd-lvm2 modconf block keyboard sd-vconsole sd-encrypt)/" \
@@ -64,10 +65,9 @@ RUN cd /usr/lib/firmware && mkdir -p intel-ucode && \
   mv kernel/x86/microcode/GenuineIntel.bin intel-ucode/ && \
   rm -r kernel
 
-RUN mkdir -p /extra-etc /etc/secureboot && update-os-id-vers base $VERS
+RUN mkdir -p /extra-etc /etc/secureboot
 
 FROM base AS desktop
-RUN update-os-id-vers desktop
 RUN pacman -Sy --needed --noconfirm \
   atom \
   git-crypt \
@@ -123,6 +123,7 @@ RUN for i in \
   etc/pulse/ \
   etc/fwupd/ \
   etc/pki/ \
+  etc/ethertypes \
   etc/NetworkManager/; \
 do \
   [ -e "/$i" ] && rsync -av /$i /usr/share/factory/$i ; \
@@ -143,7 +144,7 @@ RUN mkdir -p /usr/lib/systemd/user/default.target.wants && \
 RUN rm /usr/lib/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist && cp /etc/libccid_Info.plist /usr/lib/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist && \
   rm /usr/lib/systemd/system/sshdgenkeys.service && \
   rm /usr/lib/systemd/system/docker* && \
-  mv /etc/dbus-1/system.d/wpa_supplicant.conf /usr/share/dbus-1/system.d/
+  ( ! test -f /etc/dbus-1/system.d/wpa_supplicant.conf ||  mv /etc/dbus-1/system.d/wpa_supplicant.conf /usr/share/dbus-1/system.d/ )
 
 RUN rsync --ignore-existing -av /etc/systemd/ /usr/lib/systemd/
 
@@ -154,8 +155,10 @@ RUN build-initramfs /boot/initramfs-dracut.img
 
 RUN mv /opt /usr/local/opt
 
+ARG VERS=dev
+RUN update-os-id-vers desktop $VERS
+
 FROM base AS k8s
-RUN update-os-id-vers k8s
 RUN pacman -Sy --needed --noconfirm \
   dhcpcd \
   openssh \
@@ -166,8 +169,8 @@ RUN pacman -Sy --needed --noconfirm \
   socat \
   nfs-utils \
   linux-lts \
-  linux-lts-headers
-
+  linux-lts-headers \
+  tcpdump
 
 COPY --from=packages /output/build/k8s/packages /packages
 RUN pacman -U /packages/* --noconfirm --needed
@@ -184,6 +187,10 @@ RUN for i in \
   etc/pam.d/ \
   etc/profile.d/ \
   etc/bash.bashrc \
+  etc/ethertypes \
+  etc/netconfig \
+  etc/services \
+  etc/rpc \
   ; \
 do \
   [ -e "/$i" ] && rsync -av /$i /usr/share/factory/$i ; \
@@ -191,9 +198,46 @@ done
 
 RUN echo "HostKey /mnt/data/etc/ssh/ssh_host_rsa_key " >> /usr/share/factory/etc/ssh/sshd_config && \
   echo "HostKey /mnt/data/etc/ssh/ssh_host_ecdsa_key">> /usr/share/factory/etc/ssh/sshd_config && \
-  echo "HostKey /mnt/data/etc/ssh/ssh_host_ed25519_key" >> /usr/share/factory/etc/ssh/sshd_config
+  echo "HostKey /mnt/data/etc/ssh/ssh_host_ed25519_key" >> /usr/share/factory/etc/ssh/sshd_config && \
+  echo "ChallengeResponseAuthentication no" >> /usr/share/factory/etc/ssh/sshd_config && \
+  echo "PasswordAuthentication no" >> /usr/share/factory/etc/ssh/sshd_config && \
+  echo "PermitRootLogin no" >> /usr/share/factory/etc/ssh/sshd_config && \
+  sed -i -e "s|UsePAM .*|UsePAM no|" /usr/share/factory/etc/ssh/sshd_config
 
-RUN sed -e "s/docker.service/containerd.service/" -i /usr/lib/systemd/system/kubelet.service
+RUN export CRI_VERSION="$( curl --silent "https://api.github.com/repos/kubernetes-sigs/cri-tools/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' )" && \
+  curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRI_VERSION/crictl-$CRI_VERSION-linux-amd64.tar.gz -o /tmp/download/cri.tar.gz && \
+  tar zxvf /tmp/download/cri.tar.gz -C /usr/bin && \
+  rm -f /tmp/download/cri.tar.gz
+
+ARG CONTAINERD_VERS=1.3.2
+RUN curl -L https://github.com/containerd/containerd/releases/download/v$CONTAINERD_VERS/containerd-$CONTAINERD_VERS.linux-amd64.tar.gz -o /tmp/download/containerd.tar.gz && \
+  tar xf /tmp/download/containerd.tar.gz -C /usr && \
+  curl -L https://github.com/containerd/containerd/raw/master/containerd.service -o /usr/lib/systemd/system/containerd.service && \
+  rm /tmp/download/containerd.tar.gz
+
+ARG KUBE_VERS=1.16.4
+RUN curl -L https://dl.k8s.io/v$KUBE_VERS/kubernetes-server-linux-amd64.tar.gz -o /tmp/download/kube.tar.gz && \
+  tar xf /tmp/download/kube.tar.gz --strip-components=2 -C /usr \
+    kubernetes/server/bin/kubelet \
+    kubernetes/server/bin/kube-scheduler \
+    kubernetes/server/bin/mounter \
+    kubernetes/server/bin/apiextensions-apiserver \
+    kubernetes/server/bin/kube-proxy \
+    kubernetes/server/bin/kubeadm \
+    kubernetes/server/bin/kube-controller-manager \
+    kubernetes/server/bin/hyperkube \
+    kubernetes/server/bin/kube-apiserver \
+    kubernetes/server/bin/kubectl
+
+ARG RUNC_VERS=v1.0.0-rc9
+RUN cd /tmp/download && \
+  curl -L https://github.com/opencontainers/runc/releases/download/$RUNC_VERS/runc.amd64 -O && \
+  curl -L https://github.com/opencontainers/runc/releases/download/$RUNC_VERS/runc.sha256sum -O && \
+  curl -L https://github.com/opencontainers/runc/releases/download/$RUNC_VERS/runc.amd64.asc -O && \
+  sha256sum -c runc.sha256sum --ignore-missing && \
+  mv runc.amd64 /usr/bin/runc && \
+  chmod 755 /usr/bin/runc
+RUN rm -r /tmp/download
 
 RUN echo \
   mnt-data.mount \
@@ -204,16 +248,13 @@ RUN echo \
   containerd.service \
   cloud-init.service \
   cloud-final.service \
-  var-lib-kubelet.mount \
+  zfs-import-scan.service \
   | xargs -n 1 systemctl enable
 
 RUN rsync --ignore-existing -av /etc/systemd/ /usr/lib/systemd/
 
-RUN export CRI_VERSION="$( curl --silent "https://api.github.com/repos/kubernetes-sigs/cri-tools/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' )" && \
-curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRI_VERSION/crictl-$CRI_VERSION-linux-amd64.tar.gz -o /tmp/cri.tar.gz && \
-tar zxvf /tmp/cri.tar.gz -C /usr/bin && \
-rm -f /tmp/cri.tar.gz
-
 RUN build-initramfs /boot/initramfs-dracut.img
 RUN ln -s /mnt/data/opt-cni /opt/cni && ls -lah /opt && mkdir -p /usr/libexec
 RUN mv /opt /usr/local/opt
+ARG VERS=dev
+RUN update-os-id-vers k8s $VERS

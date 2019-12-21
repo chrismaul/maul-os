@@ -2,7 +2,7 @@
 Description = Mount libexec
 Before=kubelet.service
 After=mnt-data.mount
-
+Requires=mnt-data.mount
 [Mount]
 What=/mnt/data/kube-exec
 Where=/usr/libexec

@@ -1,8 +1,13 @@
 [Unit]
-Requires=usr-libexec.mount
-After=usr-libexec.mount
+Description=Kubernetes Kubelet Server
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+Requires=usr-libexec.mount mnt-data.mount
+After=usr-libexec.mount mnt-data.mount
 
 [Service]
+WorkingDirectory=/mnt/data/var-kubelet
+EnvironmentFile=-/etc/kubernetes/config
+EnvironmentFile=-/etc/kubernetes/kubelet
 EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env
 EnvironmentFile=-/var/lib/kubelet/kube-flags.env
 ExecStart=
@@ -19,3 +24,8 @@ ExecStart=/usr/bin/kubelet \
       --config=/var/lib/kubelet/config.yaml  \
 			--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf \
       $KUBELET_KUBEADM_ARGS
+Restart=on-failure
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
