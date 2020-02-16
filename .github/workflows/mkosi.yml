@@ -37,14 +37,14 @@ jobs:
         run: ./.tag-release.sh
         if: github.event_name == 'schedule' || github.event_name == 'push'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_PA_TOKEN }}
           TAG_NAME: ${{ steps.tag_release.outputs.tag_name }}
       - name: Create Release
         id: create_release
         uses: actions/create-release@master
         if: github.event_name == 'schedule' || github.event_name == 'push'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_PA_TOKEN }}
         with:
           tag_name: ${{ steps.tag_release.outputs.tag_name }}
           release_name: Release ${{ steps.tag_release.outputs.tag_name }}
@@ -54,7 +54,7 @@ jobs:
         if: github.event_name == 'schedule' || github.event_name == 'push'
         uses: actions/upload-release-asset@v1.0.1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_PA_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           asset_path: ./output/desktop.squashfs
@@ -64,7 +64,7 @@ jobs:
         if: github.event_name == 'schedule' || github.event_name == 'push'
         uses: actions/upload-release-asset@v1.0.1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_PA_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           asset_path: ./output/k8s.squashfs
