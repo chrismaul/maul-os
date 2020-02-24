@@ -48,7 +48,8 @@ RUN pacman -Sy --needed --noconfirm \
   python-netifaces \
   tpm2-tools \
   tpm2-abrmd \
-  screen
+  screen \
+  cpupower
 COPY base /
 COPY deploy-kernel.sh /usr/bin/
 RUN sed -e "s/^HOOKS=.*\$/HOOKS=(base systemd sd-vroot sd-localization sd-lvm2 modconf block keyboard sd-vconsole sd-encrypt)/" \
@@ -96,11 +97,17 @@ RUN pacman -Sy --needed --noconfirm \
   ccid \
   yubikey-personalization \
   yubikey-manager \
+  yubioath-desktop \
   libu2f-host \
   pam-u2f \
   ruby-bundler \
   flatpak \
-  vlc
+  vlc \
+  libmfx \
+  xdg-desktop-portal \
+  xdg-desktop-portal-gtk \
+  pipewire \
+  socat
 
 COPY --from=packages /output/build/desktop/packages /packages
 RUN pacman -U /packages/* --noconfirm --needed
@@ -116,6 +123,7 @@ RUN for i in \
   etc/UPower/ \
   etc/ca-certificates/ \
   etc/ssl/ \
+  etc/fancontrol \
   etc/pam.d/ \
   etc/profile.d/ \
   etc/bash.bashrc \
@@ -144,7 +152,8 @@ RUN mkdir -p /usr/lib/systemd/user/default.target.wants && \
 RUN rm /usr/lib/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist && cp /etc/libccid_Info.plist /usr/lib/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist && \
   rm /usr/lib/systemd/system/sshdgenkeys.service && \
   rm /usr/lib/systemd/system/docker* && \
-  ( ! test -f /etc/dbus-1/system.d/wpa_supplicant.conf ||  mv /etc/dbus-1/system.d/wpa_supplicant.conf /usr/share/dbus-1/system.d/ )
+  ( ! test -f /etc/dbus-1/system.d/wpa_supplicant.conf ||  mv /etc/dbus-1/system.d/wpa_supplicant.conf /usr/share/dbus-1/system.d/ ) && \
+  ln -s /mnt/cidata/fwupdx64.efi.signed /usr/lib/fwupd/efi/fwupdx64.efi.signed
 
 RUN rsync --ignore-existing -av /etc/systemd/ /usr/lib/systemd/
 

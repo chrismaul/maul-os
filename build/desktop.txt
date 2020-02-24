@@ -1,4 +1,3 @@
-yubico-yubioath-desktop
 brave-bin
 docker-credential-secretservice
 ibmcloud-cli
@@ -15,3 +14,4 @@ plymouth
 motionpro
 dracut-git
 mokutil-git
+thinkfan
