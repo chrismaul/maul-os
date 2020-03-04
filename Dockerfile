@@ -101,6 +101,7 @@ RUN pacman -Sy --needed --noconfirm \
   libu2f-host \
   pam-u2f \
   ruby-bundler \
+  libfido2 \
   flatpak \
   vlc \
   libmfx \
