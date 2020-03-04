@@ -5,24 +5,16 @@ then
   DOCKER_OPTS="--pull --no-cache"
   shift
 fi
-if [ -z "$1" ]
-then
-  TARGETS="desktop k3s"
-else
-  TARGETS="$@"
-fi
+TARGET="${TARGET:-k8s}"
 
 OUTPUTDIR=output
 
-for TARGET in $TARGETS
-do
-  docker build --build-arg VERS=${VERS:-pr} --target $TARGET -t $TARGET $DOCKER_OPTS .
-  docker run --name $TARGET -w / $TARGET /bin/bash -c 'mksquashfs $(ls / | egrep -v "(proc|sys|tmp)") /output.squashfs'
+docker build --build-arg VERS=${VERS:-pr} -t $TARGET $DOCKER_OPTS .
+docker run --name $TARGET -w / $TARGET /bin/bash -c 'mksquashfs $(ls / | egrep -v "(proc|sys|tmp)") /output.squashfs'
 
-  test -e $OUTPUTDIR/$TARGET.squashfs && rm $OUTPUTDIR/$TARGET.squashfs
-  docker cp $TARGET:/output.squashfs $OUTPUTDIR/$TARGET.squashfs
-  test -d $OUTPUTDIR/$TARGET && rm -r $OUTPUTDIR/$TARGET
-  docker cp $TARGET:/boot $OUTPUTDIR/$TARGET
+test -e $OUTPUTDIR/$TARGET.squashfs && rm $OUTPUTDIR/$TARGET.squashfs
+docker cp $TARGET:/output.squashfs $OUTPUTDIR/$TARGET.squashfs
+test -d $OUTPUTDIR/$TARGET && rm -r $OUTPUTDIR/$TARGET
+docker cp $TARGET:/boot $OUTPUTDIR/$TARGET
 
-  docker rm $TARGET
-done
+docker rm $TARGET

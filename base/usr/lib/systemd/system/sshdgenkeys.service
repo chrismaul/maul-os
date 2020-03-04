@@ -1,0 +1,21 @@
+[Unit]
+Description=SSH Key Generation
+ConditionPathExists=|!/mnt/data/etc/ssh/ssh_host_dsa_key
+ConditionPathExists=|!/mnt/data/etc/ssh/ssh_host_dsa_key.pub
+ConditionPathExists=|!/mnt/data/etc/ssh/ssh_host_ecdsa_key
+ConditionPathExists=|!/mnt/data/etc/ssh/ssh_host_ecdsa_key.pub
+ConditionPathExists=|!/mnt/data/etc/ssh/ssh_host_ed25519_key
+ConditionPathExists=|!/mnt/data/etc/ssh/ssh_host_ed25519_key.pub
+ConditionPathExists=|!/mnt/data/etc/ssh/ssh_host_rsa_key
+ConditionPathExists=|!/mnt/data/etc/ssh/ssh_host_rsa_key.pub
+After=mnt-data.mount
+Before=sshd.service
+
+[Service]
+ExecStartPre=mkdir -p /mnt/data/etc/ssh
+ExecStart=/usr/bin/ssh-keygen -A -f /mnt/data
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

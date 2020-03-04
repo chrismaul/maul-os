@@ -1,0 +1,32 @@
+[Unit]
+Description=Kubernetes Kubelet Server
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+Requires=usr-libexec.mount mnt-data.mount
+After=usr-libexec.mount mnt-data.mount
+
+[Service]
+WorkingDirectory=/mnt/data/var-kubelet
+EnvironmentFile=-/etc/kubernetes/config
+EnvironmentFile=-/etc/kubernetes/kubelet
+EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env
+EnvironmentFile=-/var/lib/kubelet/kube-flags.env
+ExecStartPre=-systemd-tmpfiles --create
+ExecStart=
+ExecStart=/usr/bin/kubelet \
+	    $KUBE_LOGTOSTDERR \
+	    $KUBE_LOG_LEVEL \
+	    $KUBELET_API_SERVER \
+	    $KUBELET_ADDRESS \
+	    $KUBELET_PORT \
+	    $KUBELET_HOSTNAME \
+	    $KUBE_ALLOW_PRIV \
+	    $KUBELET_ARGS \
+      --kubeconfig=/etc/kubernetes/kubelet.conf \
+      --config=/var/lib/kubelet/config.yaml  \
+			--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf \
+      $KUBELET_KUBEADM_ARGS
+Restart=on-failure
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
