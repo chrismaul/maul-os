@@ -204,19 +204,24 @@ RUN echo "HostKey /mnt/data/etc/ssh/ssh_host_rsa_key " >> /usr/share/factory/etc
   echo "PermitRootLogin no" >> /usr/share/factory/etc/ssh/sshd_config && \
   sed -i -e "s|UsePAM .*|UsePAM no|" /usr/share/factory/etc/ssh/sshd_config
 
-RUN export CRI_VERSION="$( curl --silent "https://api.github.com/repos/kubernetes-sigs/cri-tools/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' )" && \
-  curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRI_VERSION/crictl-$CRI_VERSION-linux-amd64.tar.gz -o /tmp/download/cri.tar.gz && \
+RUN mkdir -p /tmp/download
+# export CRI_VERSION="$( curl -s https://api.github.com/repos/kubernetes-sigs/cri-tools/releases | jq -r " map(select(.prerelease == false)) | sort_by(.tag_name) | reverse | .[0].tag_name" )" && \
+RUN export CRI_URL=$(curl -s https://api.github.com/repos/kubernetes-sigs/cri-tools/releases | jq -r 'map(select(.prerelease == false)) | sort_by(.tag_name) | reverse | .[0].assets | map(select(.name | test("^crictl-.*linux-amd64.tar.gz$"))) |.[0].browser_download_url ') && \
+  curl -L $CRI_URL -o /tmp/download/cri.tar.gz && \
   tar zxvf /tmp/download/cri.tar.gz -C /usr/bin && \
   rm -f /tmp/download/cri.tar.gz
 
-ARG CONTAINERD_VERS=1.3.2
-RUN curl -L https://github.com/containerd/containerd/releases/download/v$CONTAINERD_VERS/containerd-$CONTAINERD_VERS.linux-amd64.tar.gz -o /tmp/download/containerd.tar.gz && \
+#ARG CONTAINERD_VERS=1.3.2
+RUN export CONTAINERD_URL=$(curl -s https://api.github.com/repos/containerd/containerd/releases | jq -r 'map(select(.prerelease == false)) | sort_by(.tag_name) | reverse | .[0].assets | map(select(.name | test("^containerd-.*linux-amd64.tar.gz$"))) |.[0].browser_download_url ') && \
+  curl -L $CONTAINERD_URL -o /tmp/download/containerd.tar.gz && \
   tar xf /tmp/download/containerd.tar.gz -C /usr && \
   curl -L https://github.com/containerd/containerd/raw/master/containerd.service -o /usr/lib/systemd/system/containerd.service && \
+  sed -i -e 's|/usr/local/bin/containerd|/usr/bin/containerd|' /usr/lib/systemd/system/containerd.service && \
   rm /tmp/download/containerd.tar.gz
 
-ARG KUBE_VERS=1.16.4
-RUN curl -L https://dl.k8s.io/v$KUBE_VERS/kubernetes-server-linux-amd64.tar.gz -o /tmp/download/kube.tar.gz && \
+#ARG KUBE_VERS=1.16.4
+RUN export KUBE_VERS="$(curl -s https://api.github.com/repos/kubernetes/kubernetes/releases | jq -r " map(select(.prerelease == false)) | sort_by(.tag_name) | reverse | .[0].tag_name")" && \
+  curl -L https://dl.k8s.io/$KUBE_VERS/kubernetes-server-linux-amd64.tar.gz -o /tmp/download/kube.tar.gz && \
   tar xf /tmp/download/kube.tar.gz --strip-components=2 -C /usr \
     kubernetes/server/bin/kubelet \
     kubernetes/server/bin/kube-scheduler \
@@ -225,15 +230,12 @@ RUN curl -L https://dl.k8s.io/v$KUBE_VERS/kubernetes-server-linux-amd64.tar.gz -
     kubernetes/server/bin/kube-proxy \
     kubernetes/server/bin/kubeadm \
     kubernetes/server/bin/kube-controller-manager \
-    kubernetes/server/bin/hyperkube \
     kubernetes/server/bin/kube-apiserver \
     kubernetes/server/bin/kubectl
 
-ARG RUNC_VERS=v1.0.0-rc9
+#ARG RUNC_VERS=v1.0.0-rc9
 RUN cd /tmp/download && \
-  curl -L https://github.com/opencontainers/runc/releases/download/$RUNC_VERS/runc.amd64 -O && \
-  curl -L https://github.com/opencontainers/runc/releases/download/$RUNC_VERS/runc.sha256sum -O && \
-  curl -L https://github.com/opencontainers/runc/releases/download/$RUNC_VERS/runc.amd64.asc -O && \
+  curl -s https://api.github.com/repos/opencontainers/runc/releases | jq -r 'map(select(.prerelease == false)) | sort_by(.tag_name) | reverse | .[0].assets[] | .browser_download_url ' | xargs -n 1 curl -OL  && \
   sha256sum -c runc.sha256sum --ignore-missing && \
   mv runc.amd64 /usr/bin/runc && \
   chmod 755 /usr/bin/runc
@@ -254,7 +256,7 @@ RUN echo \
 RUN rsync --ignore-existing -av /etc/systemd/ /usr/lib/systemd/
 
 RUN build-initramfs /boot/initramfs-dracut.img
-RUN ln -s /mnt/data/opt-cni /opt/cni && ls -lah /opt && mkdir -p /usr/libexec
+RUN ln -s /mnt/data/opt-cni /opt/cni && ls -lah /opt && ln -s /mnt/data/kube-exec /usr/libexec
 RUN mv /opt /usr/local/opt
 ARG VERS=dev
 RUN update-os-id-vers k8s $VERS

@@ -1,8 +1,8 @@
 [Unit]
 Description=Kubernetes Kubelet Server
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
-Requires=usr-libexec.mount mnt-data.mount
-After=usr-libexec.mount mnt-data.mount
+Requires=mnt-data.mount
+After=mnt-data.mount
 
 [Service]
 WorkingDirectory=/mnt/data/var-kubelet
