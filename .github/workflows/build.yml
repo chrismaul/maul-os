@@ -23,8 +23,6 @@ jobs:
         if: github.event_name == 'schedule' || github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install Dependency
-        run: sudo ./.setup-ci-dependency
       - name: Make desktop
         run: ./build.sh desktop
         env:

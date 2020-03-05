@@ -1,22 +1,36 @@
 #!/bin/bash -ex
 DOCKER_OPTS=""
+BUILD="no"
 if [ "$1" = "no-cache" ]
 then
   DOCKER_OPTS="--pull --no-cache"
+  BUILD="yes"
   shift
-fi
-if [ -z "$1" ]
-then
-  TARGETS="desktop k3s"
-else
-  TARGETS="$@"
 fi
 
 OUTPUTDIR=output
 
-for TARGET in $TARGETS
+if [ ! -e $PWD/build/packages ]
+then
+  BUILD="yes"
+fi
+
+if [ "$BUILD" = "yes" ]
+then
+  for i in $PWD/build/*-aur.txt
+  do
+    mkdir -p $PWD/build/packages/$(basename $i .txt)
+  done
+  docker run --rm -it \
+    -v $PWD/build:/build \
+    -e DESTDIR=/build \
+    -e SRCDIR=/build \
+     archlinux/base /build/build-packages.sh
+fi
+
+for TARGET
 do
-  docker build --build-arg VERS=${VERS:-pr} --target $TARGET -t $TARGET $DOCKER_OPTS .
+  docker build -f Dockerfile.$TARGET --build-arg VERS=${VERS:-pr} -t $TARGET $DOCKER_OPTS .
   docker run --name $TARGET -w / $TARGET /bin/bash -c 'mksquashfs $(ls / | egrep -v "(proc|sys|tmp)") /output.squashfs'
 
   test -e $OUTPUTDIR/$TARGET.squashfs && rm $OUTPUTDIR/$TARGET.squashfs

@@ -1,0 +1,75 @@
+FROM archlinux/base AS base
+ARG ARCH_MIRROR=http://mirror.math.princeton.edu/pub/archlinux
+RUN sed -i "1s|^|Server = $ARCH_MIRROR/\$repo/os/\$arch\n|" /etc/pacman.d/mirrorlist
+
+COPY build /build
+
+RUN pacman -Syu --needed --noconfirm $(cat /build/base.txt) $(cat /build/desktop.txt)
+
+RUN pacman -U /build/packages/desktop-aur/* --noconfirm --needed
+
+COPY base /
+
+COPY desktop /
+
+RUN systemctl enable setup-customize-initrd.service && \
+  systemctl enable setup-profile-home.service && \
+  systemctl enable coldplug.service
+
+
+RUN curl -fsSL https://clis.cloud.ibm.com/install/linux | sh
+
+RUN curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | HELM_INSTALL_DIR=/usr/bin bash
+
+RUN ( cd /usr/bin && curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash )
+
+RUN curl -Lo /usr/bin/skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64 && \
+chmod +x /usr/bin/skaffold
+
+RUN for i in \
+  etc/environment \
+  etc/xdg/ \
+  etc/cloud/ \
+  etc/security/ \
+  etc/gdm/ \
+  etc/geoclue/ \
+  etc/UPower/ \
+  etc/ca-certificates/ \
+  etc/ssl/ \
+  etc/pam.d/ \
+  etc/profile.d/ \
+  etc/bash.bashrc \
+  etc/fonts/ \
+  etc/pulse/ \
+  etc/fwupd/ \
+  etc/pki/ \
+  etc/ethertypes \
+  etc/man_db.conf \
+  etc/NetworkManager/; \
+do \
+  [ -e "/$i" ] && rsync -av /$i /usr/share/factory/$i ; \
+done
+
+RUN echo \
+  pcscd.service \
+  bluetooth.service \
+  gdm.service \
+  | xargs -n 1 systemctl enable
+
+RUN mkdir -p /usr/lib/systemd/user/default.target.wants && \
+  ln -s ../docker.service /usr/lib/systemd/user/default.target.wants/
+
+RUN rm /usr/lib/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist && cp /etc/libccid_Info.plist /usr/lib/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist && \
+  rm /usr/lib/systemd/system/sshdgenkeys.service && \
+  rm /usr/lib/systemd/system/docker* && \
+  ( ! test -f /etc/dbus-1/system.d/wpa_supplicant.conf ||  mv /etc/dbus-1/system.d/wpa_supplicant.conf /usr/share/dbus-1/system.d/ )
+
+RUN rsync --ignore-existing -av /etc/systemd/ /usr/lib/systemd/
+
+RUN build-initramfs /boot/initramfs-dracut.img
+
+RUN /build/finalize-build.sh
+RUN rm -r /build
+
+ARG VERS=dev
+RUN update-os-id-vers desktop $VERS
