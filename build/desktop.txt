@@ -29,6 +29,7 @@ yubioath-desktop
 libu2f-host
 pam-u2f
 ruby-bundler
+libfido2
 flatpak
 vlc
 ttf-roboto
@@ -39,3 +40,5 @@ ttf-fira-code
 gnu-free-fonts
 ttf-hack
 ttf-inconsolata
+cpupower
+socat

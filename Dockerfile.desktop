@@ -43,6 +43,7 @@ RUN for i in \
   etc/pulse/ \
   etc/fwupd/ \
   etc/pki/ \
+  etc/fancontrol \
   etc/ethertypes \
   etc/man_db.conf \
   etc/NetworkManager/; \
@@ -62,7 +63,8 @@ RUN mkdir -p /usr/lib/systemd/user/default.target.wants && \
 RUN rm /usr/lib/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist && cp /etc/libccid_Info.plist /usr/lib/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist && \
   rm /usr/lib/systemd/system/sshdgenkeys.service && \
   rm /usr/lib/systemd/system/docker* && \
-  ( ! test -f /etc/dbus-1/system.d/wpa_supplicant.conf ||  mv /etc/dbus-1/system.d/wpa_supplicant.conf /usr/share/dbus-1/system.d/ )
+  ( ! test -f /etc/dbus-1/system.d/wpa_supplicant.conf ||  mv /etc/dbus-1/system.d/wpa_supplicant.conf /usr/share/dbus-1/system.d/ ) && \
+  ln -s /mnt/cidata/fwupdx64.efi.signed /usr/lib/fwupd/efi/fwupdx64.efi.signed
 
 RUN rsync --ignore-existing -av /etc/systemd/ /usr/lib/systemd/
 
