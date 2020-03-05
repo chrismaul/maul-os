@@ -21,7 +21,7 @@ then
   do
     mkdir -p $PWD/build/packages/$(basename $i .txt)
   done
-  docker run --rm -it \
+  docker run --rm \
     -v $PWD/build:/build \
     -e DESTDIR=/build \
     -e SRCDIR=/build \
