@@ -20,6 +20,7 @@ evolution
 evolution-ews
 dmidecode
 networkmanager-openconnect
+networkmanager-openvpn
 pcsclite
 opensc
 ccid

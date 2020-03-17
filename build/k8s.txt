@@ -13,3 +13,4 @@ netplan
 cloud-init
 zfs-dkms
 zfs-utils
+xfsprogs

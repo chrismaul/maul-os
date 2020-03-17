@@ -40,3 +40,4 @@ tpm2-tools
 tpm2-abrmd
 screen
 kubectl
+multipath-tools

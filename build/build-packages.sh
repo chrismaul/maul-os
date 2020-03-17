@@ -1,6 +1,6 @@
 #!/bin/bash
 set -ex
-pacman --needed -Sy --noconfirm arch-install-scripts base-devel git sudo
+pacman --needed -Sy --noconfirm arch-install-scripts base-devel git sudo awk
 useradd -m build
 echo 'build ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/build
 chmod 0440 /etc/sudoers.d/build
