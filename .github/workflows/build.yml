@@ -50,7 +50,7 @@ jobs:
           prerelease: false
       - name: Upload Desktop OS
         if: github.event_name == 'schedule' || github.event_name == 'push'
-        run: 'curl -X POST --fail -H "Authorization: $GITHUB_TOKEN" -H "Content-Type: $asset_content_type" --data-binary @$asset_path ${upload_url}=$asset_name'
+        run: 'echo ${upload_url} && curl -L -X POST --fail -H "Authorization: $GITHUB_TOKEN" -H "Content-Type: $asset_content_type" --data-binary @$asset_path ${upload_url}=$asset_name'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_PA_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
